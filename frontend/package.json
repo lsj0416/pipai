@@ -9,7 +9,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit",
-    "prepare": "cd .. && husky frontend/.husky"
+    "prepare": "[ -d ../.git ] && (cd .. && husky frontend/.husky) || true"
   },
   "dependencies": {
     "next": "^16.2.4",
