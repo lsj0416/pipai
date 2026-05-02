@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pipai
+    username: pipai
+    password: pipai
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+jwt:
+  secret: local-dev-secret-change-me-32chars
+  expiration: 3600
+  refresh-expiration: 604800
+
+law-api:
+  key: YOUR_LAW_API_KEY
+  base-url: https://www.law.go.kr/DRF
+
+openai:
+  api-key: YOUR_OPENAI_API_KEY
+  embedding-model: text-embedding-3-small
+  chat-model: gpt-4o

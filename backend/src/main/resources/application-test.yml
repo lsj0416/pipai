@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pipai}
+    username: ${DB_USERNAME:pipai}
+    password: ${DB_PASSWORD:pipai}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:test-secret-at-least-32-characters-long}
+  expiration: 3600
+  refresh-expiration: 604800
+
+law-api:
+  key: ${LAW_API_KEY:dummy}
+  base-url: https://www.law.go.kr/DRF
+
+openai:
+  api-key: ${OPENAI_API_KEY:dummy}
+  embedding-model: text-embedding-3-small
+  chat-model: gpt-4o
+
+logging:
+  level:
+    com.pipai: WARN
+    org.springframework.security: WARN
