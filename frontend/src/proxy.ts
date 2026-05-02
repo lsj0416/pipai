@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = ['/login', '/signup', '/api/auth'];
 
-export function proxy(request: NextRequest) {
+export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
+  const isPublic = PUBLIC_PATHS.some(
+    p => pathname === p || pathname.startsWith(`${p}/`)
+  );
   const token = request.cookies.get('accessToken')?.value
     ?? request.headers.get('authorization')?.replace('Bearer ', '');
 
@@ -15,7 +17,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isPublic && token) {
+  if (isPublic && token && pathname !== '/api/auth') {
     const chatUrl = request.nextUrl.clone();
     chatUrl.pathname = '/chat';
     return NextResponse.redirect(chatUrl);
@@ -25,5 +27,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.svg$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg).*)'],
 };
