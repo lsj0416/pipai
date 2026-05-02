@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     services:
       db:
         image: pgvector/pgvector:pg15
@@ -25,7 +27,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4.2.2.2.2
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4.7.0
@@ -43,10 +45,15 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/pipai
           DB_USERNAME: pipai
           DB_PASSWORD: pipai
+          JWT_SECRET: test-secret-for-ci
+          LAW_API_KEY: dummy
+          OPENAI_API_KEY: dummy
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v4.2.2
@@ -63,17 +70,27 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build & Push Docker image
+        id: build-image
         env:
           IMAGE_URI: ${{ secrets.ECR_REGISTRY }}/pipai-backend:${{ github.sha }}
         run: |
           docker build -t $IMAGE_URI ./backend
           docker push $IMAGE_URI
           echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
-        id: build-image
+
+      - name: Update ECS task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: infra/ecs-task-definition.json
+          container-name: pipai-backend
+          image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy to ECS
-        run: |
-          aws ecs update-service \
-            --cluster pipai-cluster \
-            --service pipai-backend \
-            --force-new-deployment
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          cluster: pipai-cluster
+          service: pipai-backend
+          wait-for-service-stability: true
+          wait-for-minutes: 10
