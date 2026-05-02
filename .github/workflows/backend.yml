@@ -93,5 +93,4 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           cluster: pipai-cluster
           service: pipai-backend
-          wait-for-service-stability: true
-          wait-for-minutes: 10
+          wait-for-service-stability: false
