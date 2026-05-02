@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
@@ -6,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }}>
       <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img src="/logo-mono-blue.svg" style={{ height: 48, margin: '0 auto' }} alt="PIPAi" />
+          <Image src="/logo-mono-blue.svg" width={163} height={48} style={{ margin: '0 auto' }} alt="PIPAi" />
         </div>
         {children}
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import type { NavId, RiskMiniItem, UserData, UserBusiness } from '@/lib/types';
 
 interface SidebarProps {
@@ -56,7 +57,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
     }}>
       {/* 로고 */}
       <div style={{ padding: '22px 22px 6px' }}>
-        <img src="/logo-mono-white.svg" style={{ height: 38 }} alt="PIPAi" />
+        <Image src="/logo-mono-white.svg" width={129} height={38} alt="PIPAi" />
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 8, letterSpacing: '-0.01em' }}>개인정보보호 AI 컨설팅</div>
       </div>
 
