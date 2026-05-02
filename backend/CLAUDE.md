@@ -91,12 +91,8 @@ spring:
       ddl-auto: validate
 
 law-api:
-  key: ${LAW_API_KEY}           # 법제처 OC 인증값
+  key: ${LAW_API_KEY}           # 법제처 OC 인증값 (법령 + 개보위 처분 결정문 공통 사용)
   base-url: https://www.law.go.kr/DRF
-
-pipc-api:
-  key: ${PIPC_API_KEY}          # 개보위 공공데이터 API 키
-  base-url: https://api.odcloud.kr/api
 
 openai:
   api-key: ${OPENAI_API_KEY}

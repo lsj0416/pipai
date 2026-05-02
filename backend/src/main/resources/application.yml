@@ -35,10 +35,6 @@ law-api:
   key: ${LAW_API_KEY}
   base-url: https://www.law.go.kr/DRF
 
-pipc-api:
-  key: ${PIPC_API_KEY}
-  base-url: https://api.odcloud.kr/api
-
 openai:
   api-key: ${OPENAI_API_KEY}
   embedding-model: text-embedding-3-small
