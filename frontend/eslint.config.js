@@ -1,10 +1,7 @@
-const { FlatCompat } = require('@eslint/eslintrc');
-const path = require('path');
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
+const nextConfig = require('eslint-config-next/core-web-vitals');
 
 module.exports = [
-  ...compat.extends('next/core-web-vitals'),
+  ...nextConfig,
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',

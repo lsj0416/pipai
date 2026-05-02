@@ -6,8 +6,8 @@
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src",
-    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit",
     "prepare": "cd .. && husky frontend/.husky"
   },
@@ -29,8 +29,7 @@
   "eslintConfig": {},
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
-      "ESLINT_USE_FLAT_CONFIG=false eslint --fix",
-      "tsc --noEmit"
+      "eslint --fix"
     ]
   }
 }

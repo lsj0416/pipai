@@ -60,10 +60,23 @@ const SCENARIOS: Record<ScenarioId, Scenario> = {
   },
 };
 
+function bindScenario(id: ScenarioId, onInquiry: () => void): ChatMessage[] {
+  return SCENARIOS[id].initial.map(m => {
+    if (m.role !== 'assistant') return m;
+    return {
+      ...m,
+      parts: m.parts.map(p =>
+        p.type === 'inquiry-cta' ? { ...p, onClick: onInquiry } : p
+      ),
+    };
+  });
+}
+
 export default function ChatPage() {
   const router = useRouter();
+  const onInquiry = () => router.push('/inquiry');
   const [scenarioId, setScenarioId] = useState<ScenarioId>('consent');
-  const [messages, setMessages] = useState<ChatMessage[]>(SCENARIOS.consent.initial);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => bindScenario('consent', onInquiry));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scenario = SCENARIOS[scenarioId];
@@ -74,21 +87,8 @@ export default function ChatPage() {
 
   const switchScenario = (id: ScenarioId) => {
     setScenarioId(id);
-    // InquiryButton CTA 클릭 시 /inquiry 로 이동하도록 바인딩
-    const initial: ChatMessage[] = SCENARIOS[id].initial.map(m => {
-      if (m.role !== 'assistant') return m;
-      return {
-        ...m,
-        parts: m.parts.map(p =>
-          p.type === 'inquiry-cta' ? { ...p, onClick: () => router.push('/inquiry') } : p
-        ),
-      };
-    });
-    setMessages(initial);
+    setMessages(bindScenario(id, onInquiry));
   };
-
-  // 첫 렌더 시 CTA 바인딩
-  useEffect(() => { switchScenario('consent'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = (text: string) => {
     setMessages(prev => {
