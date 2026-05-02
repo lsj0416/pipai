@@ -32,7 +32,7 @@ jobs:
       - name: Type check
         run: |
           cd frontend
-          npm run type-check || npx tsc --noEmit
+          npm run typecheck
 
       - name: Lint
         run: |
