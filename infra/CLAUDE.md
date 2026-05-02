@@ -198,7 +198,6 @@ ECS Task Definition의 환경변수로 주입. AWS Secrets Manager 연동 권장
   { "name": "DB_USERNAME", "valueFrom": "arn:aws:secretsmanager:..." },
   { "name": "DB_PASSWORD", "valueFrom": "arn:aws:secretsmanager:..." },
   { "name": "LAW_API_KEY", "valueFrom": "arn:aws:secretsmanager:..." },
-  { "name": "PIPC_API_KEY", "valueFrom": "arn:aws:secretsmanager:..." },
   { "name": "OPENAI_API_KEY", "valueFrom": "arn:aws:secretsmanager:..." }
 ]
 ```

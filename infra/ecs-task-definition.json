@@ -1,0 +1,69 @@
+{
+  "family": "pipai-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::257016720527:role/pipai-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::257016720527:role/pipai-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "pipai-backend",
+      "image": "257016720527.dkr.ecr.ap-northeast-2.amazonaws.com/pipai-backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "SPRING_PROFILES_ACTIVE", "value": "prod" }
+      ],
+      "secrets": [
+        {
+          "name": "DB_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:DB_URL::"
+        },
+        {
+          "name": "DB_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:DB_USERNAME::"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:DB_PASSWORD::"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:JWT_SECRET::"
+        },
+        {
+          "name": "LAW_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:LAW_API_KEY::"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:OPENAI_API_KEY::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/pipai-backend",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/actuator/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
