@@ -1,0 +1,65 @@
+/* Shared styles for Design System preview cards */
+@import url('../colors_and_type.css');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #FFFFFF;
+  padding: 24px;
+  font-family: var(--font-body);
+  color: var(--fg-1);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.swatch {
+  width: 100%;
+  aspect-ratio: 1.6 / 1;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.swatch.dark { color: white; }
+.swatch.light { color: var(--fg-1); }
+
+.label-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.hex {
+  opacity: 0.85;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.kicker {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}

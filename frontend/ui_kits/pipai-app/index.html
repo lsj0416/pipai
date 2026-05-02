@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>PIPAi · 개인정보보호 컨설팅 AI</title>
+  <link rel="stylesheet" href="../../colors_and_type.css" />
+  <link rel="icon" type="image/svg+xml" href="../../assets/logo-mark.svg" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body, #root { margin: 0; padding: 0; height: 100%; }
+    body { background: var(--bg-canvas); color: var(--fg-1); font-family: var(--font-body); overflow: hidden; word-break: keep-all; line-break: strict; }
+    .app-shell { display: flex; height: 100vh; width: 100vw; }
+    .chat-col { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; background: var(--bg-canvas); }
+    .chat-scroll { flex: 1; overflow-y: auto; }
+    .scenario-tabs { display: flex; gap: 6px; padding: 10px 18px; border-bottom: 1px solid var(--border-subtle); background: white; flex-shrink: 0; }
+    .scenario-tabs button { background: transparent; border: 1px solid var(--border-default); color: var(--fg-2); padding: 5px 12px; border-radius: 999px; font-size: 12px; font-family: var(--font-body); font-weight: 500; cursor: pointer; letter-spacing: -0.01em; white-space: nowrap; }
+    .scenario-tabs button.active { background: var(--gok-blue); border-color: var(--gok-blue); color: white; font-weight: 600; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script>
+    // Register a 'tsx' preset that strips TypeScript types before React JSX transform
+    Babel.registerPreset('tsx', function() {
+      return {
+        presets: [
+          [Babel.availablePresets['typescript'], { isTSX: true, allExtensions: true }],
+          Babel.availablePresets['react'],
+          Babel.availablePresets['env'],
+        ],
+      };
+    });
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="tsx" src="LawCard.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="CaseCard.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="InquiryButton.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="ChatThread.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="Composer.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="Sidebar.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="Topbar.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="Dashboard.tsx"></script>
+  <script type="text/babel" data-presets="tsx" src="InquiryGen.tsx"></script>
+
+  <script type="text/babel" data-presets="tsx">
+    const { useState, useEffect, useRef } = React;
+
+    const USER = {
+      name: '김',
+      business: { name: '카페 행복한아침', meta: '요식업 · 직원 3명' },
+    };
+
+    // ─── Scenarios ───────────────────────────────────────────────────────
+    const SCENARIOS = {
+      consent: {
+        label: '시나리오 0 · 수집 동의',
+        title: '개인정보보호 리스크 진단',
+        status: '진행 중',
+        initial: [
+          { role: 'assistant', parts: [
+            { type: 'text', html: '안녕하세요, 사장님. 카페 행복한아침의 개인정보보호 리스크 진단을 시작할게요.<br/><br/>먼저 한 가지만 여쭤볼게요. <b>고객 전화번호 수집</b>에 대해 안내드릴 수 있도록, 현재 동의서를 받고 계신지 알려주세요.' },
+          ]},
+          { role: 'quick', replies: ['네, 동의서 있어요', '아니요, 따로 없어요'] },
+        ],
+      },
+      cctv: {
+        label: '시나리오 1 · CCTV',
+        title: 'CCTV 설치 상담',
+        status: '진행 중',
+        initial: [
+          { role: 'user', content: '직원 CCTV 찍어도 되나요?' },
+          { role: 'assistant', parts: [
+            { type: 'text', html: '가능하지만 <b>사전 고지</b>가 필요해요. CCTV는 개인영상정보에 해당해서, 설치 전에 직원에게 알리고 안내문을 부착해야 해요.' },
+            { type: 'law',
+              article: '개인정보보호법 제25조',
+              body: '누구든지 영상정보처리기기를 설치·운영하려는 경우에는 정보주체가 쉽게 알아볼 수 있도록 안내판을 설치하는 등 필요한 조치를 해야 합니다.' },
+            { type: 'case',
+              headline: '제조업 B사 — 직원에게 사전 고지 없이 사무실 CCTV 운영, 과태료 300만원 처분 (2022)' },
+            { type: 'text', html: '<b>이렇게 해보세요.</b><br/>· 설치 전 직원에게 설치 목적·위치·촬영 시간을 알려주세요<br/>· 잘 보이는 곳에 안내판을 부착해 주세요<br/>· 화장실·탈의실 같은 사적 공간은 절대 안 돼요' },
+          ]},
+        ],
+      },
+      growth: {
+        label: '시나리오 2 · 성장 트리거',
+        title: '직원 채용 계획 상담',
+        status: '진행 중',
+        initial: [
+          { role: 'user', content: '곧 직원을 10명 넘길 것 같아요' },
+          { role: 'assistant', parts: [
+            { type: 'text', html: '미리 챙기시는 게 좋아요. <b>직원 10명 초과 시 개인정보보호책임자(CPO) 지정</b>이 의무예요. 보통 대표님 본인이나 관리 책임자를 지정하면 돼요.' },
+            { type: 'law',
+              article: '개인정보보호법 제31조',
+              body: '개인정보처리자는 개인정보의 처리에 관한 업무를 총괄해서 책임질 개인정보 보호책임자를 지정해야 합니다.' },
+            { type: 'auto-added' },
+            { type: 'text', html: '대시보드에 추가해 뒀어요. 채용이 확정되는 시점 기준으로 30일 전쯤 한 번 더 알려드릴게요.' },
+          ]},
+        ],
+      },
+      breach: {
+        label: '시나리오 3 · 유출 사고',
+        title: '개인정보 유출 사고 대응',
+        status: '긴급',
+        initial: [
+          { role: 'user', content: '개인정보 유출 사고가 났어요' },
+          { role: 'assistant', parts: [
+            { type: 'text', html: '즉시 신고 의무가 있는 상황이에요. 천천히 함께 정리해 봐요.<br/><br/><b>지금 바로 확인할 것</b><br/>· 유출된 항목 (이름·연락처·계좌번호 등)<br/>· 유출 경로 (해킹·분실·실수)<br/>· 유출 규모 (몇 명 분량인지)' },
+            { type: 'law',
+              article: '개인정보보호법 제34조',
+              body: '개인정보처리자는 개인정보가 유출되었음을 알게 되었을 때에는 지체 없이 정보주체에게 알리고, 일정 규모 이상의 경우 보호위원회 또는 전문기관에 신고해야 합니다.' },
+            { type: 'text', html: '지금 상황을 정리해서 <b>전문가 문의글을 자동 생성</b>해 드릴까요? 한국개인정보보호협회 등록 전문가에게 24시간 안에 답변을 받을 수 있어요.' },
+            { type: 'inquiry-cta' },
+          ]},
+        ],
+      },
+    };
+
+    // ─── Sidebar risk lists per scenario ─────────────────────────────────
+    const SCENARIO_RISKS = {
+      consent: [
+        { label: '수집 동의 절차', severity: 'high' },
+        { label: '처리방침 공개',  severity: 'medium' },
+        { label: '보관 기간 설정', severity: 'safe' },
+      ],
+      cctv: [
+        { label: 'CCTV 사전 고지', severity: 'medium' },
+        { label: '안내판 부착',    severity: 'medium' },
+        { label: '수집 동의 절차', severity: 'safe' },
+      ],
+      growth: [
+        { label: 'CPO 지정',       severity: 'medium' },
+        { label: '내부 관리계획',  severity: 'medium' },
+        { label: '수집 동의 절차', severity: 'safe' },
+      ],
+      breach: [
+        { label: '유출 신고',      severity: 'high' },
+        { label: '정보주체 통지',  severity: 'high' },
+        { label: '재발방지 대책',  severity: 'medium' },
+      ],
+    };
+
+    // ─── Dashboard data ──────────────────────────────────────────────────
+    const DASHBOARD_DATA = {
+      summary: { high: 2, medium: 4, safe: 5 },
+      rows: [
+        { title: '수집 동의 절차',         severity: 'high',   law: '개인정보보호법 제15조',     done: false },
+        { title: '유출 신고 절차',         severity: 'high',   law: '개인정보보호법 제34조',     done: false },
+        { title: 'CCTV 사전 고지',         severity: 'medium', law: '개인정보보호법 제25조',     done: false },
+        { title: '처리방침 공개',          severity: 'medium', law: '개인정보보호법 제30조',     done: false },
+        { title: '파기 절차',              severity: 'medium', law: '개인정보보호법 제21조',     done: false },
+        { title: '안전성 확보 조치',       severity: 'medium', law: '개인정보보호법 제29조',     done: true  },
+        { title: '보관 기간 설정',         severity: 'safe',   law: '개인정보보호법 제21조',     done: true  },
+        { title: '수집 최소화',            severity: 'safe',   law: '개인정보보호법 제16조',     done: true  },
+        { title: '제3자 제공 동의',        severity: 'safe',   law: '개인정보보호법 제17조',     done: true  },
+        { title: '목적 외 이용 금지',      severity: 'safe',   law: '개인정보보호법 제18조',     done: true  },
+        { title: '아동 개인정보 별도 동의', severity: 'safe',   law: '개인정보보호법 제22조의2',  done: true  },
+      ],
+      growth: [
+        { id: 'emp10', label: '직원 10명 초과 시', rows: [
+          { title: '개인정보보호책임자(CPO) 지정', law: '개인정보보호법 제31조', severity: 'medium', applies: true },
+          { title: '내부관리계획 수립',           law: '개인정보보호법 제29조', severity: 'medium', applies: true },
+          { title: '개인정보 영향평가',           law: '개인정보보호법 제33조', severity: 'safe',   applies: false },
+        ]},
+        { id: 'rev1b', label: '매출 10억 초과 시', rows: [
+          { title: '개인정보보호 인증(ISMS-P) 검토', law: '정보통신망법 제47조의3', severity: 'medium', applies: true },
+          { title: '연 1회 이상 임직원 교육',       law: '개인정보보호법 제28조',  severity: 'medium', applies: true },
+          { title: '대규모 유출 시 신고 의무',      law: '개인정보보호법 제34조',  severity: 'safe',   applies: false },
+        ]},
+      ],
+    };
+
+    const INQUIRY_DRAFT = {
+      recipient: '개인정보보호위원회 기술지원 컨설팅',
+      title: '개인정보 수집 동의 절차 관련 문의',
+      biz: {
+        industry: '요식업 (카페)',
+        size: '직원 3명 / 연매출 2억원',
+        collected: '고객 연락처 (전화번호)',
+        method: '문자 수신',
+      },
+      body: '현재 고객 전화번호를 별도 동의 없이 문자로 수집하고 있습니다. 개인정보보호법 제15조 수집 동의 절차 준수 여부 및 개선 방향에 대해 문의드립니다.',
+      diagnosis: {
+        status: '위반 가능성 높음',
+        law: '개인정보보호법 제15조',
+        precedent: '과태료 500만원 (2023)',
+      },
+    };
+
+    // ─── App ─────────────────────────────────────────────────────────────
+    function App() {
+      const [scenarioId, setScenarioId] = useState('consent');
+      const scenario = SCENARIOS[scenarioId];
+      const [messages, setMessages] = useState(scenario.initial);
+      const [risks, setRisks] = useState(SCENARIO_RISKS[scenarioId]);
+      const [activeNav, setActiveNav] = useState('chat');
+      const scrollRef = useRef(null);
+
+      useEffect(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }, [messages, activeNav]);
+
+      const switchScenario = (id) => {
+        setScenarioId(id);
+        // bind inline CTAs to nav handler
+        const initial = SCENARIOS[id].initial.map(m => {
+          if (m.role !== 'assistant') return m;
+          return { ...m, parts: m.parts.map(p =>
+            p.type === 'inquiry-cta' ? { ...p, onClick: () => setActiveNav('inquiry') } : p
+          )};
+        });
+        setMessages(initial);
+        setRisks(SCENARIO_RISKS[id]);
+        setActiveNav('chat');
+      };
+
+      // bind the initial render's CTAs once
+      useEffect(() => { switchScenario(scenarioId); /* eslint-disable-next-line */ }, []);
+
+      const send = (text) => {
+        setMessages(m => {
+          const filtered = m.filter(x => x.role !== 'quick');
+          return [...filtered, { role: 'user', content: text }];
+        });
+
+        if (scenarioId !== 'consent') {
+          setTimeout(() => setMessages(m => [...m, { role: 'assistant', parts: [{ type: 'text', html: '확인하고 있어요. 잠시만 기다려 주세요.' }] }]), 700);
+          return;
+        }
+
+        const noConsent  = text.includes('아니') || text.includes('없') || text.includes('따로');
+        const hasConsent = text.includes('네')  || text.includes('있');
+
+        const response = noConsent
+          ? { role: 'assistant', parts: [
+              { type: 'text', html: '이 부분에서 개인정보보호법 위반 가능성이 있어요. 전화번호는 개인정보에 해당하며, 수집 전 동의를 받지 않으면 법 위반이 될 수 있어요.' },
+              { type: 'law', article: '개인정보보호법 제15조',
+                body: '개인정보처리자는 정보주체의 동의를 받은 경우에만 개인정보를 수집할 수 있습니다.' },
+              { type: 'case',
+                headline: '요식업 A사 (직원 5명) — 동의 없이 고객 연락처 수집·이용으로 과태료 500만원 처분 (2023)' },
+              { type: 'text', html: '<b>이렇게 해보세요.</b><br/>· 매장 입구나 주문서에 간단한 동의 문구를 두세요<br/>· 수집 항목·이용 목적·보관 기간을 분명하게 적어주세요<br/>· 동의는 선택사항으로 받아주세요. 강제하면 안 돼요' },
+            ]}
+          : hasConsent
+          ? { role: 'assistant', parts: [
+              { type: 'text', html: '잘 운영하고 계세요. 동의서를 받고 계시다면 수집 단계는 안전한 편이에요. 다만 동의서에 <b>이용 목적</b>과 <b>보관 기간</b>이 분명히 적혀 있는지 한 번 더 확인해 드릴게요.' },
+              { type: 'law', article: '개인정보보호법 제15조 제2항',
+                body: '개인정보처리자는 동의를 받을 때 수집·이용 목적과 보유 기간을 정보주체에게 알려야 합니다.' },
+            ]}
+          : { role: 'assistant', parts: [{ type: 'text', html: '말씀해 주신 내용을 살펴보고 있어요. 잠시만 기다려 주세요.' }] };
+
+        setTimeout(() => {
+          setMessages(m => [...m, response]);
+          if (noConsent) {
+            setRisks([
+              { label: '수집 동의 절차', severity: 'high' },
+              { label: '처리방침 공개',  severity: 'medium' },
+              { label: '파기 절차',      severity: 'medium' },
+              { label: '보관 기간 설정', severity: 'safe' },
+            ]);
+          }
+        }, 700);
+      };
+
+      const renderMain = () => {
+        if (activeNav === 'dash') {
+          return <Dashboard {...DASHBOARD_DATA} onJumpToChat={() => setActiveNav('chat')} />;
+        }
+        if (activeNav === 'inquiry') {
+          return <InquiryGen draft={INQUIRY_DRAFT} onBack={() => setActiveNav('chat')} />;
+        }
+        if (activeNav === 'me') {
+          return (
+            <div style={{ padding: '40px 32px', maxWidth: 720 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>마이페이지</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4, marginBottom: 22 }}>기업 프로필을 정확히 등록하면 진단 정확도가 높아져요.</div>
+              <div style={{ background: 'white', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '20px 22px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px 24px', fontSize: 14 }}>
+                <div style={{ color: 'var(--fg-3)' }}>상호명</div>     <div style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{USER.business.name}</div>
+                <div style={{ color: 'var(--fg-3)' }}>업종</div>       <div style={{ color: 'var(--fg-1)' }}>요식업 · 일반 카페</div>
+                <div style={{ color: 'var(--fg-3)' }}>직원 수</div>    <div style={{ color: 'var(--fg-1)' }}>3명</div>
+                <div style={{ color: 'var(--fg-3)' }}>연 매출</div>    <div style={{ color: 'var(--fg-1)' }}>약 1.8억 원</div>
+                <div style={{ color: 'var(--fg-3)' }}>회원 보유</div>  <div style={{ color: 'var(--fg-1)' }}>약 480명 (멤버십)</div>
+              </div>
+            </div>
+          );
+        }
+
+        // chat
+        return (
+          <>
+            <Topbar title={scenario.title} status={scenario.status} />
+            <div className="scenario-tabs">
+              {Object.entries(SCENARIOS).map(([id, s]) => (
+                <button key={id} className={id === scenarioId ? 'active' : ''} onClick={() => switchScenario(id)}>{s.label}</button>
+              ))}
+            </div>
+            <div className="chat-scroll" ref={scrollRef}>
+              <ChatThread messages={messages} onPickQuick={send} />
+            </div>
+            <Composer onSend={send} />
+          </>
+        );
+      };
+
+      return (
+        <div className="app-shell" data-screen-label="PIPAi · App">
+          <Sidebar activeNav={activeNav} onNav={setActiveNav} riskItems={risks} user={USER} />
+          <div className="chat-col">
+            {renderMain()}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

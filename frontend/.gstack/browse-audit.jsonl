@@ -1,0 +1,36 @@
+{"ts":"2026-05-02T04:03:20.553Z","cmd":"goto","args":"http://localhost:3000","origin":"http://localhost:3000/","durationMs":541,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:03:24.806Z","cmd":"console","args":"","origin":"http://localhost:3000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:03:24.836Z","cmd":"text","args":"","origin":"http://localhost:3000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:05.387Z","cmd":"goto","args":"http://localhost:3000","origin":"http://localhost:3000/login","durationMs":120,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:05.422Z","cmd":"url","args":"","origin":"http://localhost:3000/login","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:05.477Z","cmd":"screenshot","args":"/tmp/pipai-login.png","origin":"http://localhost:3000/login","durationMs":30,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:13.708Z","cmd":"cookie","args":"accessToken=test-token","origin":"http://localhost:3000/login","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:13.996Z","cmd":"goto","args":"http://localhost:3000/chat","origin":"http://localhost:3000/chat","durationMs":263,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:14.114Z","cmd":"screenshot","args":"/tmp/pipai-chat.png","origin":"http://localhost:3000/chat","durationMs":87,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:20.576Z","cmd":"goto","args":"http://localhost:3000/dashboard","origin":"http://localhost:3000/dashboard","durationMs":227,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:20.802Z","cmd":"screenshot","args":"/tmp/pipai-dashboard.png","origin":"http://localhost:3000/dashboard","durationMs":194,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:21.088Z","cmd":"goto","args":"http://localhost:3000/mypage","origin":"http://localhost:3000/mypage","durationMs":258,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T04:04:21.144Z","cmd":"screenshot","args":"/tmp/pipai-mypage.png","origin":"http://localhost:3000/mypage","durationMs":22,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:38:23.690Z","cmd":"goto","args":"http://localhost:3000/login","origin":"about:blank","durationMs":10,"status":"error","hasCookies":false,"mode":"launched","error":"goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/login\", waiting until \"domcontentloaded\"\u001b[22m\n"}
+{"ts":"2026-05-02T07:38:23.739Z","cmd":"snapshot","args":"-i","origin":"chrome-error://chromewebdata/","durationMs":19,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:00.310Z","cmd":"goto","args":"http://localhost:3000/login","origin":"http://localhost:3000/login","durationMs":452,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:00.353Z","cmd":"snapshot","args":"-i","origin":"http://localhost:3000/login","durationMs":12,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:06.288Z","cmd":"fill","args":"@e1 dev@pipai.kr","origin":"http://localhost:3000/login","durationMs":14,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:06.319Z","cmd":"fill","args":"@e2 pipai1234!","origin":"http://localhost:3000/login","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:06.360Z","cmd":"click","args":"@e3","origin":"http://localhost:3000/login","durationMs":16,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:08.398Z","cmd":"url","args":"","origin":"http://localhost:3000/login","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:08.463Z","cmd":"screenshot","args":"/tmp/pipai-after-login.png","origin":"http://localhost:3000/login","durationMs":39,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:39:15.134Z","cmd":"console","args":"","origin":"http://localhost:3000/login","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:02.942Z","cmd":"network","args":"","origin":"http://localhost:3000/login","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:18.770Z","cmd":"goto","args":"http://localhost:3000/login","origin":"http://localhost:3000/login","durationMs":205,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:18.798Z","cmd":"fill","args":"@e1 dev@pipai.kr","origin":"http://localhost:3000/login","durationMs":0,"status":"error","hasCookies":false,"mode":"launched","error":"Ref @e1 not found. Run 'snapshot' to get fresh refs."}
+{"ts":"2026-05-02T07:40:18.823Z","cmd":"fill","args":"@e2 pipai1234!","origin":"http://localhost:3000/login","durationMs":0,"status":"error","hasCookies":false,"mode":"launched","error":"Ref @e2 not found. Run 'snapshot' to get fresh refs."}
+{"ts":"2026-05-02T07:40:18.847Z","cmd":"click","args":"@e3","origin":"http://localhost:3000/login","durationMs":0,"status":"error","hasCookies":false,"mode":"launched","error":"Ref @e3 not found. Run 'snapshot' to get fresh refs."}
+{"ts":"2026-05-02T07:40:20.903Z","cmd":"url","args":"","origin":"http://localhost:3000/login","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:20.962Z","cmd":"screenshot","args":"/tmp/pipai-chat-login.png","origin":"http://localhost:3000/login","durationMs":30,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:56.526Z","cmd":"snapshot","args":"-i","origin":"http://localhost:3000/login","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:56.557Z","cmd":"fill","args":"@e1 dev@pipai.kr","origin":"http://localhost:3000/login","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:56.586Z","cmd":"fill","args":"@e2 pipai1234!","origin":"http://localhost:3000/login","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:56.638Z","cmd":"click","args":"@e3","origin":"http://localhost:3000/login","durationMs":26,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:58.684Z","cmd":"url","args":"","origin":"http://localhost:3000/chat","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-02T07:40:58.750Z","cmd":"screenshot","args":"/tmp/pipai-chat-login.png","origin":"http://localhost:3000/chat","durationMs":37,"status":"ok","hasCookies":false,"mode":"launched"}

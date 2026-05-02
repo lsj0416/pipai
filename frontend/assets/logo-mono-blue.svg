@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 325.53 158" width="325.53" height="158">
+  <g transform="translate(24 24)">
+    <rect x="1.5" y="1.5" width="19" height="107" fill="#003764"></rect>
+    <rect x="23.5" y="1.5" width="19" height="19" fill="#003764"></rect>
+    <rect x="23.5" y="45.5" width="19" height="19" fill="#003764"></rect>
+    <rect x="45.5" y="1.5" width="19" height="63" fill="#003764"></rect>
+    <rect x="45.5" y="89.5" width="19" height="19" fill="#003764"></rect>
+  </g>
+  <text x="116.4" y="79" dominant-baseline="central" font-family="&#39;Space Grotesk&#39;, system-ui, sans-serif" font-weight="800" font-size="72.6" letter-spacing="-0.04em" fill="#003764">PIPAi</text>
+</svg>
