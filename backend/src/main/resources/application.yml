@@ -1,6 +1,6 @@
 spring:
   application:
-    name: pipai
+    name: PIPAi
 
   profiles:
     active: local
