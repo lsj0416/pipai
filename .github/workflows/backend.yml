@@ -45,7 +45,7 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/pipai
           DB_USERNAME: pipai
           DB_PASSWORD: pipai
-          JWT_SECRET: test-secret-for-ci
+          JWT_SECRET: test-secret-for-ci-at-least-32-characters-long
           LAW_API_KEY: dummy
           OPENAI_API_KEY: dummy
 
