@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }}>
       <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Image src="/logo-mono-blue.svg" width={163} height={48} style={{ margin: '0 auto' }} alt="PIPAi" />
+          <Image src="/logo-mono-blue.svg" width={163} height={48} style={{ margin: '0 auto' }} alt="PIPAi" unoptimized />
         </div>
         {children}
       </div>
