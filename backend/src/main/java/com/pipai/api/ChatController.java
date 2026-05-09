@@ -4,6 +4,7 @@ import com.pipai.common.ApiResponse;
 import com.pipai.common.JwtProvider;
 import com.pipai.domain.Conversation;
 import com.pipai.domain.Message;
+import com.pipai.repository.MessageRepository;
 import com.pipai.service.ChatService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,28 +28,57 @@ public class ChatController {
 
     private final ChatService chatService;
     private final JwtProvider jwtProvider;
+    private final MessageRepository messageRepository;
 
     public record CreateConversationRequest(@NotBlank String title) {}
     public record SendMessageRequest(@NotBlank String message) {}
+    public record ConversationListItem(
+            String conversationId,
+            String title,
+            String lastMessage,
+            Instant createdAt
+    ) {}
+    public record ConversationData(
+            String id,
+            String title,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+    public record ConversationMessage(
+            String messageId,
+            String role,
+            String content,
+            Instant createdAt
+    ) {}
+    public record ConversationMessagesData(
+            String conversationId,
+            List<ConversationMessage> messages
+    ) {}
 
     @GetMapping
-    public ApiResponse<List<Conversation>> list(@AuthenticationPrincipal UUID userId) {
-        return ApiResponse.ok(chatService.listConversations(userId));
+    public ApiResponse<List<ConversationListItem>> list(@AuthenticationPrincipal UUID userId) {
+        List<ConversationListItem> items = chatService.listConversations(userId).stream()
+                .map(this::toConversationListItem)
+                .toList();
+        return ApiResponse.ok(items);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<Conversation> create(
+    public ApiResponse<ConversationData> create(
             @AuthenticationPrincipal UUID userId,
             @Valid @RequestBody CreateConversationRequest req) {
-        return ApiResponse.ok(chatService.createConversation(userId, req.title()));
+        return ApiResponse.ok(toConversationData(chatService.createConversation(userId, req.title())));
     }
 
     @GetMapping("/{id}/messages")
-    public ApiResponse<List<Message>> messages(
+    public ApiResponse<ConversationMessagesData> messages(
             @PathVariable UUID id,
             @AuthenticationPrincipal UUID userId) {
-        return ApiResponse.ok(chatService.getMessages(id, userId));
+        List<ConversationMessage> messages = chatService.getMessages(id, userId).stream()
+                .map(this::toConversationMessage)
+                .toList();
+        return ApiResponse.ok(new ConversationMessagesData(id.toString(), messages));
     }
 
     @PostMapping(value = "/{id}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -67,5 +98,33 @@ public class ChatController {
         UUID userId = jwtProvider.getUserId(token);
         return Flux.defer(() -> chatService.sendMessage(id, userId, req.message()))
                 .onErrorResume(e -> Flux.just("{\"type\":\"error\",\"content\":\"죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.\"}"));
+    }
+
+    private ConversationListItem toConversationListItem(Conversation conversation) {
+        Message lastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(conversation.getId());
+        return new ConversationListItem(
+                conversation.getId().toString(),
+                conversation.getTitle(),
+                lastMessage != null ? lastMessage.getContent() : "",
+                conversation.getCreatedAt()
+        );
+    }
+
+    private ConversationData toConversationData(Conversation conversation) {
+        return new ConversationData(
+                conversation.getId().toString(),
+                conversation.getTitle(),
+                conversation.getCreatedAt(),
+                conversation.getUpdatedAt()
+        );
+    }
+
+    private ConversationMessage toConversationMessage(Message message) {
+        return new ConversationMessage(
+                message.getId().toString(),
+                message.getRole().name().toLowerCase(),
+                message.getContent(),
+                message.getCreatedAt()
+        );
     }
 }
