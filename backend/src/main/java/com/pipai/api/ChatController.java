@@ -66,6 +66,6 @@ public class ChatController {
         }
         UUID userId = jwtProvider.getUserId(token);
         return Flux.defer(() -> chatService.sendMessage(id, userId, req.message()))
-                .onErrorResume(e -> Flux.just("data: {\"type\":\"error\",\"content\":\"죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.\"}\n\n"));
+                .onErrorResume(e -> Flux.just("{\"type\":\"error\",\"content\":\"죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.\"}"));
     }
 }

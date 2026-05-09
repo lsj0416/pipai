@@ -107,7 +107,18 @@ export default function ChatPage() {
 
     try {
       await sendMessage(token, convId, text, (event) => {
-        if (event.type === 'text' && event.content) {
+        if (event.type === 'error') {
+          setMessages(prev => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role !== 'assistant') return prev;
+            copy[copy.length - 1] = {
+              ...last,
+              parts: [{ type: 'text', html: typeof event.content === 'string' ? event.content : '죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.' }],
+            };
+            return copy;
+          });
+        } else if (event.type === 'text' && event.content) {
           const chunk = event.content.replace(/\n/g, '<br/>');
           setMessages(prev => {
             const copy = [...prev];

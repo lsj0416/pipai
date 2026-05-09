@@ -31,12 +31,18 @@ export interface SSEDoneEvent {
   type: 'done';
 }
 
+export interface SSEErrorEvent {
+  type: 'error';
+  content: string;
+}
+
 export type SSEEvent =
   | SSETextEvent
   | SSELawRefEvent
   | SSECaseRefEvent
   | SSEChecklistEvent
-  | SSEDoneEvent;
+  | SSEDoneEvent
+  | SSEErrorEvent;
 
 // ── 대화 / 메시지 타입 ────────────────────────────────────────────────────────
 export interface ConversationListItem {
@@ -129,8 +135,9 @@ export async function sendMessage(
     buffer = lines.pop() ?? '';
 
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const raw = line.slice(6).trim();
+      if (!line.startsWith('data:')) continue;
+      // Spring SSE writes "data:" (no space); RFC allows both "data:" and "data: "
+      const raw = line.startsWith('data: ') ? line.slice(6).trim() : line.slice(5).trim();
       if (!raw) continue;
       if (raw === '[DONE]') {
         onEvent({ type: 'done' });
