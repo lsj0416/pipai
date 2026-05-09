@@ -8,7 +8,7 @@ export interface ApiResponse<T> {
 }
 
 export function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 }
 
 function getToken(): string | null {
