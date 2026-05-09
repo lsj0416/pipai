@@ -30,13 +30,15 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 마운트 시 선제적으로 대화 생성 (실패해도 send()에서 재시도)
+  // cancelled ref로 React StrictMode 이중 실행 시 중복 생성 방지
   useEffect(() => {
+    let cancelled = false;
     const token = localStorage.getItem('accessToken');
     if (!token) { router.push('/login'); return; }
 
     createConversation(token, '개인정보보호 리스크 진단')
       .then(res => {
-        if (res.success && res.data) {
+        if (!cancelled && res.success && res.data) {
           conversationIdRef.current = res.data.id;
           setConvId(res.data.id);
         }
@@ -44,6 +46,7 @@ export default function ChatPage() {
       .catch(() => {
         // 실패해도 UI는 정상 — send()에서 재시도
       });
+    return () => { cancelled = true; };
   }, [router]);
 
   useEffect(() => {
