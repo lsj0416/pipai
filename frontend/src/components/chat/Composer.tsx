@@ -1,37 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ComposerProps {
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | Promise<boolean>;
   disabled?: boolean;
 }
 
 export default function Composer({ onSend, disabled = false }: ComposerProps) {
   const [value, setValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const submit = () => {
-    if (!value.trim() || disabled) return;
-    onSend(value.trim());
-    setValue('');
+  useEffect(() => {
+    if (!disabled) {
+      textareaRef.current?.focus();
+    }
+  }, [disabled]);
+
+  const submit = async () => {
+    const nextValue = value.trim();
+    if (!nextValue || disabled) return;
+
+    const shouldClear = await onSend(nextValue);
+    if (shouldClear !== false) {
+      setValue('');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Prevent accidental submit while Korean IME composition is still active.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      submit();
+      void submit();
     }
   };
 
   const isActive = Boolean(value.trim()) && !disabled;
 
   return (
-    <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
-      padding: '16px 32px 20px',
-      background: 'linear-gradient(to bottom, rgba(250,250,250,0) 0%, var(--bg-canvas) 35%)',
-      pointerEvents: 'none',
-    }}>
+    <div
+      onClick={() => textareaRef.current?.focus()}
+      style={{
+        flexShrink: 0,
+        padding: '16px 32px 20px',
+        borderTop: '1px solid var(--border-subtle)',
+        background: 'var(--bg-canvas)',
+      }}
+    >
       <div style={{
         maxWidth: 760, margin: '0 auto',
         background: 'white',
@@ -40,9 +58,11 @@ export default function Composer({ onSend, disabled = false }: ComposerProps) {
         boxShadow: 'var(--shadow-md)',
         padding: '14px 14px 14px 18px',
         display: 'flex', alignItems: 'flex-end', gap: 10,
-        pointerEvents: 'auto',
       }}>
         <textarea
+          ref={textareaRef}
+          autoFocus
+          aria-label="채팅 입력"
           value={value}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -56,7 +76,9 @@ export default function Composer({ onSend, disabled = false }: ComposerProps) {
           }}
         />
         <button
-          onClick={submit}
+          onClick={() => {
+            void submit();
+          }}
           disabled={!isActive}
           style={{
             background: isActive ? 'var(--gok-blue)' : 'var(--gray-100)',

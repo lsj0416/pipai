@@ -2,6 +2,11 @@ spring:
   application:
     name: PIPAi
 
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:backend/.env[.properties]
+
   profiles:
     active: local
 
@@ -36,7 +41,7 @@ law-api:
   base-url: https://www.law.go.kr/DRF
 
 openai:
-  api-key: ${OPENAI_API_KEY}
+  api-key: ${OPENAI_API_KEY:}
   embedding-model: text-embedding-3-small
   chat-model: gpt-4o
 

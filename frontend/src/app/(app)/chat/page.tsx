@@ -16,11 +16,6 @@ const WELCOME: ChatMessage = {
   }],
 };
 
-const ERROR_MSG: ChatMessage = {
-  role: 'assistant',
-  parts: [{ type: 'text', html: '죄송합니다. 응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' }],
-};
-
 export default function ChatPage() {
   const router = useRouter();
   const conversationIdRef = useRef<string | null>(null);
@@ -69,36 +64,33 @@ export default function ChatPage() {
     return null;
   };
 
-  const appendErrorToLast = () => {
+  const replaceLastAssistantText = (html: string) => {
     setMessages(prev => {
       const copy = [...prev];
       const last = copy[copy.length - 1];
-      if (last?.role !== 'assistant') return [...prev, ERROR_MSG];
+      if (last?.role !== 'assistant') return [...prev, { role: 'assistant', parts: [{ type: 'text', html }] }];
       const parts = [...last.parts];
       const lastPart = parts[parts.length - 1];
       if (lastPart?.type === 'text' && !lastPart.html) {
-        parts[parts.length - 1] = { type: 'text', html: '죄송합니다. 응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' };
+        parts[parts.length - 1] = { type: 'text', html };
         copy[copy.length - 1] = { ...last, parts };
         return copy;
       }
-      return [...prev, ERROR_MSG];
+      return [...prev, { role: 'assistant', parts: [{ type: 'text', html }] }];
     });
   };
 
-  const send = async (text: string) => {
-    if (streaming) return;
+  const appendErrorToLast = () => {
+    replaceLastAssistantText('죄송합니다. 응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
+  };
+
+  const send = async (text: string): Promise<boolean> => {
+    if (streaming) return false;
 
     const token = localStorage.getItem('accessToken');
-    if (!token) { router.push('/login'); return; }
-
-    const convId = await ensureConversationId(token);
-    if (!convId) {
-      setMessages(prev => [
-        ...prev.filter(x => x.role !== 'quick'),
-        { role: 'user', content: text },
-        { role: 'assistant', parts: [{ type: 'text', html: '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.<br/>백엔드 서버가 실행 중인지 확인해 주세요.' }] },
-      ]);
-      return;
+    if (!token) {
+      router.push('/login');
+      return false;
     }
 
     setMessages(prev => [
@@ -109,18 +101,19 @@ export default function ChatPage() {
     setStreaming(true);
 
     try {
+      const convId = await ensureConversationId(token);
+      if (!convId) {
+        replaceLastAssistantText('서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.<br/>백엔드 서버가 실행 중인지 확인해 주세요.');
+        return true;
+      }
+
       await sendMessage(token, convId, text, (event) => {
         if (event.type === 'error') {
-          setMessages(prev => {
-            const copy = [...prev];
-            const last = copy[copy.length - 1];
-            if (last?.role !== 'assistant') return prev;
-            copy[copy.length - 1] = {
-              ...last,
-              parts: [{ type: 'text', html: typeof event.content === 'string' ? event.content : '죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.' }],
-            };
-            return copy;
-          });
+          replaceLastAssistantText(
+            typeof event.content === 'string'
+              ? event.content
+              : '죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.',
+          );
         } else if (event.type === 'text' && event.content) {
           const chunk = event.content.replace(/\n/g, '<br/>');
           setMessages(prev => {
@@ -162,8 +155,10 @@ export default function ChatPage() {
           });
         }
       });
+      return true;
     } catch {
       appendErrorToLast();
+      return true;
     } finally {
       setStreaming(false);
     }

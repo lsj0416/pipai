@@ -15,15 +15,26 @@ public class CaseEmbeddingRepository {
 
     public List<Map<String, Object>> searchSimilar(float[] queryVector, String businessType, int limit) {
         String vectorStr = toVectorString(queryVector);
+        if (businessType == null || businessType.isBlank()) {
+            String sql = """
+                    SELECT id, case_id, title, summary, business_type, violation_type, fine_amount,
+                           embedding <=> ?::vector AS distance
+                    FROM case_embeddings
+                    ORDER BY distance
+                    LIMIT ?
+                    """;
+            return jdbcTemplate.queryForList(sql, vectorStr, limit);
+        }
+
         String sql = """
                 SELECT id, case_id, title, summary, business_type, violation_type, fine_amount,
                        embedding <=> ?::vector AS distance
                 FROM case_embeddings
-                WHERE business_type = ? OR ? IS NULL
+                WHERE business_type = ?
                 ORDER BY distance
                 LIMIT ?
                 """;
-        return jdbcTemplate.queryForList(sql, vectorStr, businessType, businessType, limit);
+        return jdbcTemplate.queryForList(sql, vectorStr, businessType, limit);
     }
 
     public void upsert(String caseId, String title, String summary, String businessType,

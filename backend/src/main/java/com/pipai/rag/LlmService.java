@@ -1,5 +1,6 @@
 package com.pipai.rag;
 
+import com.pipai.common.LocalEnvResolver;
 import com.pipai.common.exception.LlmException;
 import com.pipai.domain.CompanyProfile;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +23,17 @@ public class LlmService {
 
     public LlmService(
             @Value("${openai.api-key}") String apiKey,
-            @Value("${openai.chat-model}") String chatModel) {
+            @Value("${openai.chat-model}") String chatModel,
+            @Value("${spring.profiles.active:}") String activeProfile) {
         this.chatModel = chatModel;
+        String resolvedApiKey = LocalEnvResolver.preferLocalFile(
+                "OPENAI_API_KEY",
+                apiKey,
+                activeProfile.contains("local")
+        );
         this.webClient = WebClient.builder()
                 .baseUrl("https://api.openai.com/v1")
-                .defaultHeader("Authorization", "Bearer " + apiKey)
+                .defaultHeader("Authorization", "Bearer " + resolvedApiKey)
                 .build();
     }
 

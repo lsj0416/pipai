@@ -1,10 +1,12 @@
 package com.pipai.rag;
 
+import com.pipai.common.LocalEnvResolver;
 import com.pipai.common.exception.LlmException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -19,11 +21,17 @@ public class EmbeddingService {
 
     public EmbeddingService(
             @Value("${openai.api-key}") String apiKey,
-            @Value("${openai.embedding-model}") String model) {
+            @Value("${openai.embedding-model}") String model,
+            @Value("${spring.profiles.active:}") String activeProfile) {
         this.model = model;
+        String resolvedApiKey = LocalEnvResolver.preferLocalFile(
+                "OPENAI_API_KEY",
+                apiKey,
+                activeProfile.contains("local")
+        );
         this.webClient = WebClient.builder()
                 .baseUrl("https://api.openai.com/v1")
-                .defaultHeader("Authorization", "Bearer " + apiKey)
+                .defaultHeader("Authorization", "Bearer " + resolvedApiKey)
                 .build();
     }
 
@@ -48,6 +56,14 @@ public class EmbeddingService {
             }
             return result;
         } catch (Exception e) {
+            if (e instanceof WebClientResponseException responseException) {
+                log.error("Embedding request failed: status={} body={}",
+                        responseException.getStatusCode(),
+                        responseException.getResponseBodyAsString(),
+                        e);
+            } else {
+                log.error("Embedding request failed: {}", e.getMessage(), e);
+            }
             throw new LlmException("임베딩 생성 실패", e);
         }
     }

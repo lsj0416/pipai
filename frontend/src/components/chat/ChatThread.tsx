@@ -73,7 +73,7 @@ function renderPart(p: MessagePart, j: number): React.ReactElement | null {
 
 export default function ChatThread({ messages, onPickQuick }: ChatThreadProps) {
   return (
-    <div style={{ padding: '24px 32px 160px', maxWidth: 820, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px 32px', maxWidth: 820, margin: '0 auto' }}>
       {messages.map((m, i) => {
         if (m.role === 'quick') {
           return (
