@@ -32,6 +32,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // SSE 스트리밍 엔드포인트: Spring MVC + WebFlux 혼용 시 SecurityContext가
+                        // Flux 실행 컨텍스트에 전파되지 않는 문제로 인해 permitAll 처리 후
+                        // ChatController에서 JwtProvider를 통해 직접 검증
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/conversations/*/messages").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
