@@ -1,35 +1,25 @@
 import { apiRequest, type ApiResponse } from './client';
 
-export type TargetChannel = 'law_interpretation' | 'tech_support' | 'self_diagnosis';
+// ── 백엔드 응답 타입 ──────────────────────────────────────────────────────────
+export type InquiryStatus = 'DRAFT' | 'SUBMITTED';
 
-export interface InquiryGenerateRequest {
-  conversationId: string;
-  targetChannel: TargetChannel;
-}
-
-export interface InquiryData {
-  inquiryId: string;
-  title: string;
-  body: string;
-  targetChannel: TargetChannel;
-  targetUrl: string;
+export interface BackendInquiryDraft {
+  id: string;
+  subject: string;
+  content: string;
+  relatedLaws: string | null;
+  status: InquiryStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
+// ── API 함수 ──────────────────────────────────────────────────────────────────
 export async function generateInquiry(
   token: string,
-  body: InquiryGenerateRequest,
-): Promise<ApiResponse<InquiryData>> {
-  return apiRequest<InquiryData>('/api/inquiry/generate', {
-    method: 'POST',
-    token,
-    body: JSON.stringify(body),
-  });
-}
-
-export async function getInquiry(
-  token: string,
-  inquiryId: string,
-): Promise<ApiResponse<InquiryData>> {
-  return apiRequest<InquiryData>(`/api/inquiry/${inquiryId}`, { token });
+  conversationId: string,
+): Promise<ApiResponse<BackendInquiryDraft>> {
+  return apiRequest<BackendInquiryDraft>(
+    `/api/inquiry/generate/${conversationId}`,
+    { method: 'POST', token },
+  );
 }

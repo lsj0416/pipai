@@ -8,6 +8,7 @@ interface DashboardProps {
   summary: DashboardSummary;
   growth: GrowthScenario[];
   onJumpToChat: (row: ChecklistRow) => void;
+  onResolve?: (itemId: string) => void;
 }
 
 interface ColorMap { bg: string; border: string; accent: string; text: string }
@@ -67,7 +68,7 @@ function GrowthRow({ row }: { row: GrowthRowData }) {
   );
 }
 
-export default function Dashboard({ rows, summary, growth, onJumpToChat }: DashboardProps) {
+export default function Dashboard({ rows, summary, growth, onJumpToChat, onResolve }: DashboardProps) {
   const [tab, setTab] = useState<string>(growth[0]?.id ?? '');
   const [filter, setFilter] = useState<SeverityActive | null>(null);
 
@@ -106,6 +107,11 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat }: Dashb
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.6fr 1fr', gap: 16, padding: '12px 22px', background: 'var(--bg-subtle)', fontSize: 11, fontWeight: 600, color: 'var(--fg-3)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-subtle)' }}>
             <div>항목명</div><div>리스크 등급</div><div>관련 법령</div><div>조치 여부</div>
           </div>
+          {filteredRows.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--fg-3)', fontSize: 14 }}>
+              {rows.length === 0 ? 'AI 대화를 시작하면 진단 항목이 자동으로 추가돼요.' : '해당 등급의 항목이 없어요.'}
+            </div>
+          )}
           {filteredRows.map((r, i) => (
             <button key={i} onClick={() => onJumpToChat(r)} style={{
               display: 'grid', gridTemplateColumns: '2fr 1fr 1.6fr 1fr',
@@ -119,7 +125,19 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat }: Dashb
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>{r.title}</div>
               <div><SeverityPill severity={r.severity} /></div>
               <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>{r.law}</div>
-              <div style={{ fontSize: 13, color: r.done ? 'var(--success)' : 'var(--fg-3)', fontWeight: r.done ? 600 : 500 }}>{r.done ? '완료' : '미조치'}</div>
+              <div>
+                {r.done ? (
+                  <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>완료</span>
+                ) : (
+                  <button onClick={e => { e.stopPropagation(); if (r.id && onResolve) onResolve(r.id); }} style={{
+                    background: 'var(--bg-tint-blue)', color: 'var(--gok-blue)',
+                    border: '1px solid var(--border-subtle)', borderRadius: 6,
+                    padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                    cursor: onResolve && r.id ? 'pointer' : 'default',
+                    fontFamily: 'var(--font-body)',
+                  }}>완료 처리</button>
+                )}
+              </div>
             </button>
           ))}
         </div>

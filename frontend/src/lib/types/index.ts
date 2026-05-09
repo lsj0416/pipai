@@ -73,6 +73,7 @@ export type ChatMessage = UserMsg | AssistantMsg | QuickMsg;
 
 // ── 대시보드 ──────────────────────────────────────────────────────────────────
 export interface ChecklistRow {
+  id?: string;
   title: string;
   severity: SeverityActive;
   law: string;

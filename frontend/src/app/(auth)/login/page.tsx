@@ -25,6 +25,7 @@ export default function LoginPage() {
     try {
       const res = await login({ email, password });
       if (res.success && res.data) {
+        localStorage.setItem('accessToken', res.data.accessToken);
         await fetch('/api/auth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

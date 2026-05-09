@@ -35,6 +35,28 @@ export async function apiRequest<T>(
     headers,
   });
 
-  const json = (await response.json()) as ApiResponse<T>;
-  return json;
+  // Spring Security 기본 설정이 미인증 시 403을 반환하므로 401과 동일하게 처리
+  if (response.status === 401 || response.status === 403) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+    }
+    return {
+      success: false,
+      data: null,
+      error: { code: 'UNAUTHORIZED', message: '인증이 필요합니다. 다시 로그인해 주세요.' },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse<T>;
+  }
+
+  try {
+    const json = (await response.json()) as ApiResponse<T>;
+    return json;
+  } catch {
+    return {
+      success: false,
+      data: null,
+      error: { code: 'PARSE_ERROR', message: '응답을 처리할 수 없습니다.' },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse<T>;
+  }
 }

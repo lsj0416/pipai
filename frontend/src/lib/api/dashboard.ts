@@ -1,44 +1,39 @@
 import { apiRequest, type ApiResponse } from './client';
 
-export type RiskStatus = 'danger' | 'warning' | 'safe' | 'pending';
+// ── 백엔드 응답 타입 ──────────────────────────────────────────────────────────
+export type RiskLevel = 'IMMEDIATE' | 'CHECK_NEEDED' | 'GOOD';
 
-export interface RiskItem {
-  itemId: string;
+export interface BackendRiskItem {
+  id: string;
   title: string;
-  status: RiskStatus;
-  relatedArticle: string;
-  resolvedAt: string | null;
+  description: string | null;
+  level: RiskLevel;
+  relatedLaw: string | null;
+  resolved: boolean;
+  createdAt: string;
   updatedAt: string;
 }
 
-export interface GrowthScenarioItem {
-  trigger: string;
-  items: {
-    itemId: string;
-    title: string;
-    relatedArticle: string;
-    status: RiskStatus;
-  }[];
+export interface BackendSummary {
+  riskCounts: Record<string, number>;
+  recentItems: BackendRiskItem[];
 }
 
-export interface DashboardData {
-  summary: { danger: number; warning: number; safe: number };
-  currentRisks: RiskItem[];
-  growthScenarios: GrowthScenarioItem[];
+// ── API 함수 ──────────────────────────────────────────────────────────────────
+export async function getSummary(token: string): Promise<ApiResponse<BackendSummary>> {
+  return apiRequest<BackendSummary>('/api/dashboard/summary', { token });
 }
 
-export async function getDashboard(token: string): Promise<ApiResponse<DashboardData>> {
-  return apiRequest<DashboardData>('/api/dashboard', { token });
+export async function getRisks(token: string): Promise<ApiResponse<BackendRiskItem[]>> {
+  return apiRequest<BackendRiskItem[]>('/api/dashboard/risks', { token });
 }
 
-export async function patchRiskItem(
+export async function resolveRisk(
   token: string,
-  itemId: string,
-  status: RiskStatus,
-): Promise<ApiResponse<RiskItem>> {
-  return apiRequest<RiskItem>(`/api/dashboard/risks/${itemId}`, {
+  id: string,
+): Promise<ApiResponse<BackendRiskItem>> {
+  return apiRequest<BackendRiskItem>(`/api/dashboard/risks/${id}/resolve`, {
     method: 'PATCH',
     token,
-    body: JSON.stringify({ status }),
   });
 }

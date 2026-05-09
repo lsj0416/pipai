@@ -1,25 +1,19 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Dashboard from '@/components/dashboard/Dashboard';
 import type { ChecklistRow, GrowthScenario, DashboardSummary } from '@/lib/types';
+import { getSummary, resolveRisk, type RiskLevel } from '@/lib/api/dashboard';
 
-// TODO: 실제 구현 시 lib/api/dashboard.ts getDashboard()로 교체
-const MOCK_SUMMARY: DashboardSummary = { high: 2, medium: 4, safe: 5 };
+const LEVEL_MAP: Record<RiskLevel, ChecklistRow['severity']> = {
+  IMMEDIATE: 'high',
+  CHECK_NEEDED: 'medium',
+  GOOD: 'safe',
+};
 
-const MOCK_ROWS: ChecklistRow[] = [
-  { title: '수집 동의 절차',   severity: 'high',   law: '개인정보보호법 제15조', done: false },
-  { title: '유출 신고 절차',   severity: 'high',   law: '개인정보보호법 제34조', done: false },
-  { title: 'CCTV 사전 고지',   severity: 'medium', law: '개인정보보호법 제25조', done: false },
-  { title: '처리방침 공개',    severity: 'medium', law: '개인정보보호법 제30조', done: false },
-  { title: '파기 절차',        severity: 'medium', law: '개인정보보호법 제21조', done: false },
-  { title: '안전성 확보 조치', severity: 'medium', law: '개인정보보호법 제29조', done: true  },
-  { title: '보관 기간 설정',   severity: 'safe',   law: '개인정보보호법 제21조', done: true  },
-  { title: '수집 최소화',      severity: 'safe',   law: '개인정보보호법 제16조', done: true  },
-  { title: '제3자 제공 동의',  severity: 'safe',   law: '개인정보보호법 제17조', done: true  },
-];
-
-const MOCK_GROWTH: GrowthScenario[] = [
+// 성장 시나리오는 마이페이지 프로필 기반으로 생성되는 항목 (백엔드 미구현)
+const GROWTH_SCENARIOS: GrowthScenario[] = [
   {
     id: 'emp10', label: '직원 10명 초과 시',
     rows: [
@@ -39,12 +33,89 @@ const MOCK_GROWTH: GrowthScenario[] = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [rows, setRows] = useState<ChecklistRow[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary>({ high: 0, medium: 0, safe: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadData = useCallback(async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) { router.push('/login'); return; }
+
+    try {
+      const res = await getSummary(token);
+      if (!res.success || !res.data) {
+        setError('데이터를 불러오는 중 오류가 발생했어요.');
+        return;
+      }
+
+      const { riskCounts, recentItems } = res.data;
+      setSummary({
+        high:   Number(riskCounts['IMMEDIATE']   ?? 0),
+        medium: Number(riskCounts['CHECK_NEEDED'] ?? 0),
+        safe:   Number(riskCounts['GOOD']         ?? 0),
+      });
+      setRows(recentItems.map(item => ({
+        id:       item.id,
+        title:    item.title,
+        severity: LEVEL_MAP[item.level] ?? 'safe',
+        law:      item.relatedLaw ?? '',
+        done:     item.resolved,
+      })));
+    } catch {
+      setError('데이터를 불러오는 중 오류가 발생했어요.');
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleResolve = async (itemId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const res = await resolveRisk(token, itemId);
+    if (!res.success) return;
+
+    setRows(prev => prev.map(r => r.id === itemId ? { ...r, done: true } : r));
+    setSummary(prev => {
+      const row = rows.find(r => r.id === itemId);
+      if (!row || row.done) return prev;
+      const key = row.severity === 'high' ? 'high' : row.severity === 'medium' ? 'medium' : 'safe';
+      return { ...prev, [key]: Math.max(0, prev[key] - 1) };
+    });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--fg-3)', fontSize: 14 }}>
+        불러오는 중...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '40px', maxWidth: 480 }}>
+        <div style={{ background: '#FEF2F2', color: 'var(--gok-red)', padding: '16px 20px', borderRadius: 12, fontSize: 14 }}>
+          {error}
+          <button onClick={loadData} style={{ display: 'block', marginTop: 10, fontSize: 13, color: 'var(--gok-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)' }}>
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Dashboard
-      rows={MOCK_ROWS}
-      summary={MOCK_SUMMARY}
-      growth={MOCK_GROWTH}
+      rows={rows}
+      summary={summary}
+      growth={GROWTH_SCENARIOS}
       onJumpToChat={() => router.push('/chat')}
+      onResolve={handleResolve}
     />
   );
 }

@@ -6,118 +6,184 @@ import Topbar from '@/components/layout/Topbar';
 import ChatThread from '@/components/chat/ChatThread';
 import Composer from '@/components/chat/Composer';
 import type { ChatMessage } from '@/lib/types';
+import { createConversation, sendMessage } from '@/lib/api/conversations';
 
-// 프로토타입 시나리오 데이터 (백엔드 연동 전 임시)
-type ScenarioId = 'consent' | 'cctv' | 'growth' | 'breach';
-
-interface Scenario {
-  label: string;
-  title: string;
-  status: string;
-  initial: ChatMessage[];
-}
-
-const SCENARIOS: Record<ScenarioId, Scenario> = {
-  consent: {
-    label: '시나리오 0 · 수집 동의', title: '개인정보보호 리스크 진단', status: '진행 중',
-    initial: [
-      { role: 'assistant', parts: [{ type: 'text', html: '안녕하세요, 사장님. 카페 행복한아침의 개인정보보호 리스크 진단을 시작할게요.<br/><br/>먼저 한 가지만 여쭤볼게요. <b>고객 전화번호 수집</b>에 대해 안내드릴 수 있도록, 현재 동의서를 받고 계신지 알려주세요.' }] },
-      { role: 'quick', replies: ['네, 동의서 있어요', '아니요, 따로 없어요'] },
-    ],
-  },
-  cctv: {
-    label: '시나리오 1 · CCTV', title: 'CCTV 설치 상담', status: '진행 중',
-    initial: [
-      { role: 'user', content: '직원 CCTV 찍어도 되나요?' },
-      { role: 'assistant', parts: [
-        { type: 'text', html: '가능하지만 <b>사전 고지</b>가 필요해요.' },
-        { type: 'law', article: '개인정보보호법 제25조', body: '누구든지 영상정보처리기기를 설치·운영하려는 경우에는 정보주체가 쉽게 알아볼 수 있도록 안내판을 설치하는 등 필요한 조치를 해야 합니다.' },
-        { type: 'case', headline: '제조업 B사 — 직원에게 사전 고지 없이 사무실 CCTV 운영, 과태료 300만원 처분 (2022)' },
-      ]},
-    ],
-  },
-  growth: {
-    label: '시나리오 2 · 성장 트리거', title: '직원 채용 계획 상담', status: '진행 중',
-    initial: [
-      { role: 'user', content: '곧 직원을 10명 넘길 것 같아요' },
-      { role: 'assistant', parts: [
-        { type: 'text', html: '미리 챙기시는 게 좋아요. <b>직원 10명 초과 시 개인정보보호책임자(CPO) 지정</b>이 의무예요.' },
-        { type: 'law', article: '개인정보보호법 제31조', body: '개인정보처리자는 개인정보의 처리에 관한 업무를 총괄해서 책임질 개인정보 보호책임자를 지정해야 합니다.' },
-        { type: 'auto-added' },
-      ]},
-    ],
-  },
-  breach: {
-    label: '시나리오 3 · 유출 사고', title: '개인정보 유출 사고 대응', status: '긴급',
-    initial: [
-      { role: 'user', content: '개인정보 유출 사고가 났어요' },
-      { role: 'assistant', parts: [
-        { type: 'text', html: '즉시 신고 의무가 있는 상황이에요. 천천히 함께 정리해 봐요.' },
-        { type: 'law', article: '개인정보보호법 제34조', body: '개인정보처리자는 개인정보가 유출되었음을 알게 되었을 때에는 지체 없이 정보주체에게 알리고, 일정 규모 이상의 경우 보호위원회 또는 전문기관에 신고해야 합니다.' },
-        { type: 'inquiry-cta' },
-      ]},
-    ],
-  },
+const WELCOME: ChatMessage = {
+  role: 'assistant',
+  parts: [{
+    type: 'text',
+    html: '안녕하세요! 개인정보보호법(PIPA) 관련 리스크 진단을 도와드릴게요.<br/><br/>사업체 운영 중 궁금한 점이나 우려되는 상황을 편하게 말씀해 주세요.',
+  }],
 };
 
-function bindScenario(id: ScenarioId, onInquiry: () => void): ChatMessage[] {
-  return SCENARIOS[id].initial.map(m => {
-    if (m.role !== 'assistant') return m;
-    return {
-      ...m,
-      parts: m.parts.map(p =>
-        p.type === 'inquiry-cta' ? { ...p, onClick: onInquiry } : p
-      ),
-    };
-  });
-}
+const ERROR_MSG: ChatMessage = {
+  role: 'assistant',
+  parts: [{ type: 'text', html: '죄송합니다. 응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' }],
+};
 
 export default function ChatPage() {
   const router = useRouter();
-  const onInquiry = () => router.push('/inquiry');
-  const [scenarioId, setScenarioId] = useState<ScenarioId>('consent');
-  const [messages, setMessages] = useState<ChatMessage[]>(() => bindScenario('consent', onInquiry));
+  const conversationIdRef = useRef<string | null>(null);
+  const [convId, setConvId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+  const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const scenario = SCENARIOS[scenarioId];
+  // 마운트 시 선제적으로 대화 생성 (실패해도 send()에서 재시도)
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) { router.push('/login'); return; }
+
+    createConversation(token, '개인정보보호 리스크 진단')
+      .then(res => {
+        if (res.success && res.data) {
+          conversationIdRef.current = res.data.id;
+          setConvId(res.data.id);
+        }
+      })
+      .catch(() => {
+        // 실패해도 UI는 정상 — send()에서 재시도
+      });
+  }, [router]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [messages]);
 
-  const switchScenario = (id: ScenarioId) => {
-    setScenarioId(id);
-    setMessages(bindScenario(id, onInquiry));
+  // 대화 ID를 보장하는 헬퍼 (없으면 새로 생성)
+  const ensureConversationId = async (token: string): Promise<string | null> => {
+    if (conversationIdRef.current) return conversationIdRef.current;
+    try {
+      const res = await createConversation(token, '개인정보보호 리스크 진단');
+      if (res.success && res.data) {
+        conversationIdRef.current = res.data.id;
+        setConvId(res.data.id);
+        return res.data.id;
+      }
+    } catch {}
+    return null;
   };
 
-  const send = (text: string) => {
+  const appendErrorToLast = () => {
     setMessages(prev => {
-      const filtered = prev.filter(x => x.role !== 'quick');
-      return [...filtered, { role: 'user', content: text }];
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      if (last?.role !== 'assistant') return [...prev, ERROR_MSG];
+      const parts = [...last.parts];
+      const lastPart = parts[parts.length - 1];
+      if (lastPart?.type === 'text' && !lastPart.html) {
+        parts[parts.length - 1] = { type: 'text', html: '죄송합니다. 응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' };
+        copy[copy.length - 1] = { ...last, parts };
+        return copy;
+      }
+      return [...prev, ERROR_MSG];
     });
-    // TODO: 실제 SSE 스트리밍으로 교체 (lib/api/conversations.ts sendMessage)
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', parts: [{ type: 'text', html: '확인하고 있어요. 잠시만 기다려 주세요.' }] },
-      ]);
-    }, 700);
   };
+
+  const send = async (text: string) => {
+    if (streaming) return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) { router.push('/login'); return; }
+
+    const convId = await ensureConversationId(token);
+    if (!convId) {
+      setMessages(prev => [
+        ...prev.filter(x => x.role !== 'quick'),
+        { role: 'user', content: text },
+        { role: 'assistant', parts: [{ type: 'text', html: '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.<br/>백엔드 서버가 실행 중인지 확인해 주세요.' }] },
+      ]);
+      return;
+    }
+
+    setMessages(prev => [
+      ...prev.filter(x => x.role !== 'quick'),
+      { role: 'user', content: text },
+      { role: 'assistant', parts: [{ type: 'text', html: '' }] },
+    ]);
+    setStreaming(true);
+
+    try {
+      await sendMessage(token, convId, text, (event) => {
+        if (event.type === 'text' && event.content) {
+          const chunk = event.content.replace(/\n/g, '<br/>');
+          setMessages(prev => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role !== 'assistant') return prev;
+            const parts = [...last.parts];
+            const lastPart = parts[parts.length - 1];
+            if (lastPart?.type === 'text') {
+              parts[parts.length - 1] = { type: 'text', html: lastPart.html + chunk };
+              copy[copy.length - 1] = { ...last, parts };
+            }
+            return copy;
+          });
+        } else if (event.type === 'law_ref') {
+          setMessages(prev => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role !== 'assistant') return prev;
+            copy[copy.length - 1] = {
+              ...last,
+              parts: [...last.parts, { type: 'law', article: event.content.articleNo, body: event.content.summary }],
+            };
+            return copy;
+          });
+        } else if (event.type === 'case_ref') {
+          setMessages(prev => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role !== 'assistant') return prev;
+            copy[copy.length - 1] = {
+              ...last,
+              parts: [...last.parts, {
+                type: 'case',
+                headline: `${event.content.businessType} — ${event.content.violation} (${event.content.year})`,
+              }],
+            };
+            return copy;
+          });
+        }
+      });
+    } catch {
+      appendErrorToLast();
+    } finally {
+      setStreaming(false);
+    }
+  };
+
+  const hasUserMessage = messages.some(m => m.role === 'user');
 
   return (
     <>
-      <Topbar title={scenario.title} status={scenario.status} />
-      <div className="scenario-tabs">
-        {(Object.keys(SCENARIOS) as ScenarioId[]).map(id => (
-          <button key={id} className={id === scenarioId ? 'active' : ''} onClick={() => switchScenario(id)}>
-            {SCENARIOS[id].label}
+      <Topbar title="개인정보보호 리스크 진단" status={streaming ? '응답 중...' : '진행 중'} />
+      {hasUserMessage && convId && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 32px 8px', flexShrink: 0 }}>
+          <button
+            onClick={() => router.push(`/inquiry?conversationId=${convId}`)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--bg-tint-blue)', color: 'var(--gok-blue)',
+              border: '1px solid var(--border-subtle)', borderRadius: 8,
+              padding: '6px 14px', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6M9 13h6M9 17h6"/>
+            </svg>
+            문의글 자동 생성
           </button>
-        ))}
-      </div>
+        </div>
+      )}
       <div className="chat-scroll" ref={scrollRef}>
         <ChatThread messages={messages} onPickQuick={send} />
       </div>
-      <Composer onSend={send} />
+      <Composer onSend={send} disabled={streaming} />
     </>
   );
 }

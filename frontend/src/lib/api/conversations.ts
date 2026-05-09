@@ -73,10 +73,22 @@ export async function listConversations(
   return apiRequest<ConversationListItem[]>('/api/conversations', { token });
 }
 
+export interface ConversationData {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export async function createConversation(
   token: string,
-): Promise<ApiResponse<{ conversationId: string; createdAt: string }>> {
-  return apiRequest('/api/conversations', { method: 'POST', token });
+  title: string,
+): Promise<ApiResponse<ConversationData>> {
+  return apiRequest<ConversationData>('/api/conversations', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ title }),
+  });
 }
 
 // EventSource는 커스텀 헤더(Authorization)를 지원하지 않으므로
@@ -120,12 +132,17 @@ export async function sendMessage(
       if (!line.startsWith('data: ')) continue;
       const raw = line.slice(6).trim();
       if (!raw) continue;
+      if (raw === '[DONE]') {
+        onEvent({ type: 'done' });
+        return;
+      }
       try {
         const event = JSON.parse(raw) as SSEEvent;
         onEvent(event);
         if (event.type === 'done') return;
       } catch {
-        // 파싱 실패한 라인은 무시
+        // 백엔드가 raw text를 전송하는 경우 text 이벤트로 처리
+        onEvent({ type: 'text', content: raw });
       }
     }
   }
