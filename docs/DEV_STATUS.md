@@ -1,13 +1,13 @@
 # PIPAi 개발 현황 문서
 
-> 작성일: 2025-05-10 | 최종 업데이트: 2025-05-10 | 마감: 2025-05-29 (19일 남음)  
-> 전체 완성도: **약 88%** (P0·P1 완료)
+> 작성일: 2025-05-10 | 최종 업데이트: 2025-05-11 | 마감: 2025-05-29 (18일 남음)  
+> 전체 완성도: **약 92%** (P0·P1 완료 + 검증 버그 수정)
 
 ---
 
 ## 🎯 개발 우선순위 (한눈에 보기)
 
-마감까지 19일, **"심사위원에게 보여줄 수 있는 완성도"** 기준으로 정렬
+마감까지 18일, **"심사위원에게 보여줄 수 있는 완성도"** 기준으로 정렬
 
 ### 🔴 P0 — 안 하면 데모 자체가 불가 ✅ **완료 (2025-05-10)**
 
@@ -21,7 +21,7 @@
 
 > 단위 테스트 17개 전체 통과 확인 (LlmServiceTest 7개, LawApiClientTest 5개, PipcApiClientTest 5개)
 
-### 🟠 P1 — 완성도·신뢰도에 직접 영향 ✅ **완료 (2025-05-10)**
+### 🟠 P1 — 완성도·신뢰도에 직접 영향 ✅ **완료 (2025-05-10~11)**
 
 | 순위 | 작업 | 파일 | 상태 |
 |------|------|------|------|
@@ -29,23 +29,27 @@
 | 7 | `layout.tsx` MOCK_USER → 실제 프로필 API 호출 | `(app)/layout.tsx` | ✅ 완료 |
 | 8 | 채팅 이력 초기 로드 (기존 대화 재열기) | `chat/page.tsx`, `Sidebar.tsx` | ✅ 완료 |
 
+> P1 검증(2025-05-11)에서 버그 2건 발견·수정:
+> - `LlmService.completeText()` — `bodyToMono(JsonNode.class)` 교체 (디코더 불명확 문제)
+> - `InquiryService.generate()` — LLM null 응답 시 DB 제약 위반, 빈 대화 호출 방지
+
 ### 🟡 P2 — 있으면 좋지만 없어도 데모 가능
 
 | 순위 | 작업 | 파일 | 예상 소요 |
 |------|------|------|----------|
-| 9 | 성장 시나리오 백엔드 동적 생성 | `DashboardService.java` | 반나절 |
-| 10 | 신규 가입자 기본 리스크 체크리스트 자동 생성 | `AuthService.java` | 2~3시간 |
+| 9 | 신규 가입자 기본 리스크 체크리스트 자동 생성 | `AuthService.java` | 2~3시간 |
+| 10 | 성장 시나리오 백엔드 동적 생성 | `DashboardService.java` | 반나절 |
 | 11 | 대화 중 리스크 실시간 대시보드 반영 | `dashboard/page.tsx` | 반나절 |
 | 12 | `Message.lawReferences` 법령 출처 저장 | `ChatService.java` | 2~3시간 |
 
-### 📅 추천 일정
+### 📅 실제 진행 vs 추천 일정
 
 ```
-5/11~5/14  → P0: LLM 파싱 + ChatService 저장 + 외부 API 파싱 구현
-5/15~5/17  → P0: 벡터 DB 데이터 로드 + RAG end-to-end 검증
-5/18~5/21  → P1: 문의글 생성 + MOCK 제거 + 채팅 이력
-5/22~5/24  → P2: 성장 시나리오 + 리스크 자동 생성
-5/25~5/29  → QA + 배포 안정화 + 발표 자료
+[완료] 5/10       → P0 전체 완료 (예정보다 4일 단축)
+[완료] 5/10~5/11  → P1 전체 완료 + 검증·버그 수정 (예정보다 7일 단축)
+[진행 예정] 5/11~5/14  → P2: 리스크 자동 생성 + 성장 시나리오
+[진행 예정] 5/15~5/22  → QA 준비 + E2E 시나리오 테스트
+[진행 예정] 5/23~5/29  → 최종 QA + 배포 안정화 + 발표 자료
 ```
 
 ---
@@ -57,8 +61,7 @@
 3. [프론트엔드 상세](#3-프론트엔드-상세)
 4. [데이터베이스](#4-데이터베이스)
 5. [미완성 항목 목록](#5-미완성-항목-목록)
-6. [개발 우선순위](#6-개발-우선순위)
-7. [환경변수 체크리스트](#7-환경변수-체크리스트)
+6. [환경변수 체크리스트](#6-환경변수-체크리스트)
 
 ---
 
@@ -66,15 +69,15 @@
 
 | 영역 | 완성도 | 비고 |
 |------|--------|------|
-| 백엔드 API (Controller) | 95% | 기본 CRUD 완성 |
-| 백엔드 Service | 83% | InquiryService 미완성 |
-| RAG 파이프라인 | 70% | LLM 응답 파싱·저장 미흡 |
-| 외부 API 연동 | 20% | 응답 파싱 미구현 |
-| 벡터 DB | 30% | 쿼리 구조만 완성, 초기 데이터 없음 |
-| 프론트엔드 페이지 | 95% | 전 페이지 UI 완성 |
+| 백엔드 API (Controller) | 97% | `POST /conversations/{id}/messages` SSE 완성 |
+| 백엔드 Service | 97% | InquiryService 완성, 리스크 자동 생성만 P2 잔여 |
+| RAG 파이프라인 | 95% | LLM 파싱·저장·문의글 생성 모두 완성 |
+| 외부 API 연동 | 90% | 파싱 완성, LawDataSyncService 변경이력 감지 미완 |
+| 벡터 DB | 90% | 초기 데이터 자동 로드 완성 (DataInitializer) |
+| 프론트엔드 페이지 | 98% | 성장 시나리오 하드코딩만 P2 잔여 |
 | 프론트엔드 API 함수 | 100% | 전 엔드포인트 연동 완성 |
 | DB 마이그레이션 | 100% | V1~V6 완성 |
-| 초기 데이터 | 0% | 법령·사례 데이터 미로드 |
+| 초기 데이터 | 90% | 법령·사례 자동 로드, 기본 리스크 체크리스트만 P2 잔여 |
 
 ---
 
@@ -92,56 +95,43 @@
 | `GET /api/conversations` | ✅ 완성 | `ChatController.java` |
 | `POST /api/conversations` | ✅ 완성 | `ChatController.java` |
 | `GET /api/conversations/{id}/messages` | ✅ 완성 | `ChatController.java` |
-| `POST /api/conversations/{id}/messages` | ⚠️ 부분 | SSE 구조 완성, AI 응답 저장 미흡 |
+| `POST /api/conversations/{id}/messages` | ✅ 완성 | SSE 스트리밍 + AI 응답 DB 저장 완성 |
 | `GET /api/dashboard/summary` | ✅ 완성 | `DashboardController.java` |
 | `GET /api/dashboard/risks` | ✅ 완성 | `DashboardController.java` |
 | `PATCH /api/dashboard/risks/{id}/resolve` | ✅ 완성 | `DashboardController.java` |
-| `POST /api/inquiry/generate/{conversationId}` | ❌ 미완성 | `InquiryController.java` |
-| `GET /api/laws/search` | ⚠️ 부분 | 응답 파싱 미구현 |
+| `POST /api/inquiry/generate/{conversationId}` | ✅ 완성 | LLM 문의글 생성·저장 완성 |
+| `GET /api/laws/search` | ✅ 완성 | `LawController.java` |
 
 ### 2-2. Service Layer
 
-| 서비스 | 상태 | 미완성 내용 |
-|--------|------|------------|
+| 서비스 | 상태 | 비고 |
+|--------|------|------|
 | `AuthService` | ✅ 완성 | — |
 | `ProfileService` | ✅ 완성 | — |
-| `ChatService` | ⚠️ 부분 | `sendMessage()` 스트리밍 완료 후 AI 응답 저장 미구현 (`doOnComplete` 주석만 존재, line 61) |
+| `ChatService` | ✅ 완성 | SSE 스트리밍 + AI 응답 DB 저장 완성 |
 | `DashboardService` | ✅ 완성 | — |
-| `InquiryService` | ✅ 완성 | `generate()` LLM 호출·파싱·InquiryDraft 저장 구현 완료 |
-| `LawDataSyncService` | ⚠️ 부분 | 스케줄러 구조 완성, 실제 데이터 동기화 미작동 |
+| `InquiryService` | ✅ 완성 | `generate()` — 대화 이력 → LLM → InquiryDraft 저장. 빈 대화·null 응답 예외 처리 포함 |
+| `LawDataSyncService` | ⚠️ 부분 | 스케줄러 구조 완성, 변경이력 감지 미구현 (P2 범위 밖) |
 
 ### 2-3. RAG 파이프라인
 
-| 컴포넌트 | 상태 | 미완성 내용 |
-|---------|------|------------|
+| 컴포넌트 | 상태 | 비고 |
+|---------|------|------|
 | `RagPipeline` | ✅ 완성 | 전체 흐름 구현 완료 |
 | `EmbeddingService` | ✅ 완성 | OpenAI text-embedding-3-small 연동 완료 |
-| `VectorSearchService` | ✅ 완성 | pgvector 쿼리 완료 (단, DB에 데이터 없음) |
-| `LlmService` | ⚠️ 부분 | `extractContent()` 메서드(line 94~101)가 단순 문자열 매칭으로 OpenAI SSE 형식 미지원, 이스케이프 문자 처리 안 됨 |
-
-**`LlmService.extractContent()` 현재 코드 (line 94~101):**
-```java
-private String extractContent(String sseChunk) {
-    // SSE 데이터에서 content 추출 (간단 파싱)
-    int idx = sseChunk.indexOf("\"content\":\"");
-    if (idx < 0) return "";
-    int start = idx + 11;
-    int end = sseChunk.indexOf("\"", start);
-    return end > start ? sseChunk.substring(start, end) : "";
-}
-```
-→ OpenAI SSE는 `data: {...}` 형식이므로 실제 파싱 로직 필요 (JSON 파싱 미적용)
+| `VectorSearchService` | ✅ 완성 | pgvector 쿼리 완료 |
+| `LlmService` | ✅ 완성 | `extractContent()` Jackson JSON 파싱, `completeText()` JsonNode 직접 역직렬화 |
 
 ### 2-4. 외부 API 연동
 
 #### LawApiClient (`external/LawApiClient.java`)
 
-| 메서드 | 상태 | 문제 |
+| 메서드 | 상태 | 비고 |
 |--------|------|------|
 | `searchLaws(String query)` | ✅ 완성 | `LawSearch.law` 배열/단건 객체 모두 파싱 |
 | `fetchRecentlyAmended()` | ⚠️ 부분 | 고정 쿼리 사용, 변경이력 감지 미구현 |
 | `parseLawChunks(Map response)` | ✅ 완성 | 법령 ID·법령명 파싱, 필터링 처리 |
-| `fetchLawArticles(String lawId)` | ✅ 완성 | 조문 단위 파싱 신규 추가 |
+| `fetchLawArticles(String lawId)` | ✅ 완성 | 조문 단위 파싱 |
 
 #### PipcApiClient (`external/PipcApiClient.java`)
 
@@ -151,19 +141,20 @@ private String extractContent(String sseChunk) {
 | `parseCaseData(Map response)` | ✅ 완성 | `PrecSearch.prec` 파싱, 판시사항+판결요지 합산 |
 
 > ⚠️ 참고: `PipcApiClient`는 현재 법제처 DRF API(`lawSearch.do?target=expc`)를 사용 중.  
-> 실제 개보위 데이터 API(`api.odcloud.kr`)와 엔드포인트가 다름 — `CLAUDE.md`에 두 URL이 혼재함.
+> 실제 개보위 데이터 API(`api.odcloud.kr`)와 엔드포인트가 다름 — 데모 전 확인 필요.
 
 ### 2-5. Repository Layer
 
-| 리포지토리 | 상태 | 미완성 내용 |
-|-----------|------|------------|
+| 리포지토리 | 상태 | 비고 |
+|-----------|------|------|
 | `UserRepository` | ✅ 완성 | JPA |
 | `ProfileRepository` | ✅ 완성 | JPA |
 | `ConversationRepository` | ✅ 완성 | JPA |
 | `MessageRepository` | ✅ 완성 | JPA |
 | `RiskRepository` | ✅ 완성 | JPA |
-| `LawEmbeddingRepository` | ✅ 완성 | JDBC 구조 완성, 앱 시작 시 DataInitializer가 데이터 로드 |
-| `CaseEmbeddingRepository` | ✅ 완성 | JDBC 구조 완성, 앱 시작 시 DataInitializer가 데이터 로드 |
+| `InquiryDraftRepository` | ✅ 완성 | JPA — `findByConversationId` 포함 |
+| `LawEmbeddingRepository` | ✅ 완성 | JDBC, 앱 시작 시 DataInitializer가 데이터 로드 |
+| `CaseEmbeddingRepository` | ✅ 완성 | JDBC, 앱 시작 시 DataInitializer가 데이터 로드 |
 
 ---
 
@@ -171,14 +162,14 @@ private String extractContent(String sseChunk) {
 
 ### 3-1. 페이지
 
-| 페이지 | 경로 | 상태 | 미완성 내용 |
-|--------|------|------|------------|
+| 페이지 | 경로 | 상태 | 비고 |
+|--------|------|------|------|
 | 로그인 | `/login` | ✅ 완성 | — |
 | 회원가입 | `/signup` | ✅ 완성 | — |
-| 채팅 | `/chat` | ✅ 완성 | — |
-| 대시보드 | `/dashboard` | ⚠️ 부분 | 성장 시나리오 하드코딩 (line 16~32) |
+| 채팅 | `/chat` | ✅ 완성 | `?conversationId` 파라미터로 기존 대화 이력 로드 |
+| 대시보드 | `/dashboard` | ⚠️ 부분 | 성장 시나리오 하드코딩 — P2 |
 | 마이페이지 | `/mypage` | ✅ 완성 | 10단계 폼 완성 |
-| 문의글 | `/inquiry` | ⚠️ 부분 | 백엔드 InquiryService 미완성으로 기능 미동작 |
+| 문의글 | `/inquiry` | ✅ 완성 | InquiryService 완성으로 정상 동작 |
 
 ### 3-2. 컴포넌트
 
@@ -188,7 +179,7 @@ private String extractContent(String sseChunk) {
 | `Composer` | ✅ 완성 | 메시지 입력 |
 | `Dashboard` | ✅ 완성 | 요약 카드 + 체크리스트 |
 | `InquiryGen` | ✅ 완성 | 문의글 조회·편집 UI |
-| `Sidebar` | ✅ 완성 | 네비게이션, 로그아웃 |
+| `Sidebar` | ✅ 완성 | 최근 대화 목록, 실제 프로필·리스크 표시, 로그아웃 |
 | `Topbar` | ✅ 완성 | 상단 바 |
 | `LawCard` | ✅ 완성 | 법령 조항 카드 |
 | `CaseCard` | ✅ 완성 | 사례 카드 |
@@ -206,19 +197,9 @@ private String extractContent(String sseChunk) {
 | `law.ts` | ✅ 완성 | searchLaws |
 | `client.ts` | ✅ 완성 | apiRequest, getBaseUrl |
 
-### 3-4. 주요 하드코딩 항목
+### 3-4. 잔여 하드코딩 항목
 
-**`frontend/src/app/(app)/layout.tsx` (line 4~10)**
-```typescript
-// TODO: 실제 구현에서는 서버사이드 auth + profile fetch로 교체
-const MOCK_USER: UserData = {
-  name: '사용자',
-  business: { name: '내 사업체', meta: '프로필을 등록해 주세요' },
-};
-const MOCK_RISK_ITEMS: RiskMiniItem[] = [];
-```
-
-**`frontend/src/app/(app)/dashboard/page.tsx` (line 16~32)**
+**`frontend/src/app/(app)/dashboard/page.tsx` — P2 대상**
 ```typescript
 // 성장 시나리오는 마이페이지 프로필 기반으로 생성되는 항목 (백엔드 미구현)
 const GROWTH_SCENARIOS: GrowthScenario[] = [
@@ -226,6 +207,8 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
   { id: 'rev1b', label: '매출 10억 초과 시', rows: [...] },
 ];
 ```
+
+> ~~`layout.tsx` MOCK_USER~~ → 실제 프로필·리스크 API 연동 완료 (2025-05-10)
 
 ---
 
@@ -248,89 +231,42 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
 |--------|------|------|
 | 법령 임베딩 데이터 | ✅ 자동 로드 | `DataInitializer` — 앱 시작 시 비어있으면 자동 수집·임베딩 |
 | 사례 임베딩 데이터 | ✅ 자동 로드 | `DataInitializer` — 앱 시작 시 비어있으면 자동 수집·임베딩 |
-| 기본 리스크 체크리스트 | ❌ 없음 | 신규 사용자 가입 시 자동 생성 로직 미구현 (P2) |
+| 기본 리스크 체크리스트 | ❌ 없음 | 신규 사용자 가입 시 자동 생성 로직 미구현 — P2 |
 
 ---
 
 ## 5. 미완성 항목 목록
 
-### 🔴 Critical — 핵심 기능 미동작 ✅ **전체 해결 (2025-05-10)**
+### 🔴 Critical ✅ **전체 해결 (2025-05-10)**
 
 | # | 위치 | 내용 | 상태 |
 |---|------|------|------|
 | C-1 | `external/LawApiClient.java` | `parseLawChunks()` 응답 파싱 | ✅ 완료 |
 | C-2 | `external/PipcApiClient.java` | `parseCaseData()` 응답 파싱 | ✅ 완료 |
-| C-3 | `service/DataInitializer.java` | 벡터 DB 초기 데이터 로드 | ✅ 완료 (신규 파일) |
+| C-3 | `service/DataInitializer.java` | 벡터 DB 초기 데이터 로드 | ✅ 완료 |
 | C-4 | `service/InquiryService.java` | `generate()` LLM 문의글 생성 | ✅ 완료 |
 
-### 🟡 High — 불완전한 동작
+### 🟡 High ✅ **전체 해결 (2025-05-10~11)**
 
 | # | 위치 | 내용 | 상태 |
 |---|------|------|------|
-| H-1 | `rag/LlmService.java` | `extractContent()` SSE JSON 파싱 | ✅ 완료 |
+| H-1 | `rag/LlmService.java` | SSE JSON 파싱 + `completeText()` 버그 수정 | ✅ 완료 |
 | H-2 | `service/ChatService.java` | AI 응답 스트리밍 완료 후 DB 저장 | ✅ 완료 |
-| H-3 | `frontend/(app)/layout.tsx:4` | 사이드바 MOCK_USER 하드코딩 | ✅ 완료 |
-| H-4 | `frontend/dashboard/page.tsx:16` | 성장 시나리오 하드코딩 | ⏳ P2 진행 예정 |
+| H-3 | `frontend/(app)/layout.tsx` | 사이드바 MOCK_USER 제거 + 실제 API 연동 | ✅ 완료 |
+| H-4 | `chat/page.tsx`, `Sidebar.tsx` | 기존 대화 이력 로드, 최근 대화 목록 | ✅ 완료 |
 
-### 🟢 Medium — UX 개선 필요
+### 🟢 P2 — 잔여 항목
 
-| # | 위치 | 내용 |
-|---|------|------|
-| M-1 | 채팅 페이지 | 기존 대화 클릭 시 메시지 이력 불러오기 | ✅ 완료 |
-| M-2 | 대시보드 | 대화 중 SSE `checklist_update` 이벤트 수신 → 리스크 실시간 갱신 미구현 |
-| M-3 | 회원가입 flow | 가입 완료 시 기본 리스크 체크리스트 자동 생성 미구현 |
-| M-4 | `Message.lawReferences` 필드 | AI 응답에서 참조 법령·사례 저장 로직 없음 |
-
----
-
-## 6. 개발 우선순위
-
-마감까지 19일 남은 상황에서의 권장 순서:
-
-### 1주차 (5/11~5/17) — 데이터 파이프라인
-
-```
-1. LawApiClient.parseLawChunks() 구현
-   → 법제처 DRF JSON 응답 스키마 파악 후 조문 단위 파싱
-
-2. PipcApiClient.parseCaseData() 구현
-   → expc(법령해석례) 응답 파싱
-
-3. 벡터 DB 초기화 배치 구현
-   → 애플리케이션 시작 시 (또는 별도 CLI) 법령·사례 일괄 임베딩
-
-4. LlmService.extractContent() 개선
-   → Jackson ObjectMapper로 OpenAI SSE JSON 정식 파싱
-```
-
-### 2주차 (5/18~5/24) — 핵심 기능 완성
-
-```
-5. InquiryService.generate() 구현
-   → 대화 이력 조회 → LLM 프롬프트 → InquiryDraft 저장
-
-6. ChatService.sendMessage() AI 응답 저장
-   → doOnComplete 콜백에서 누적된 응답 문자열 Message로 저장
-
-7. layout.tsx MOCK_USER 제거
-   → 서버사이드에서 /api/profile 호출로 교체
-
-8. 성장 시나리오 백엔드 생성 로직
-   → 프로필 저장 시 직원수·매출 기반 자동 리스크 항목 생성
-```
-
-### 3주차 (5/25~5/29) — QA·마무리
-
-```
-9. 채팅 이력 초기 로드 (기존 대화 재열기)
-10. 신규 가입자 기본 리스크 체크리스트 자동 생성
-11. E2E 시나리오 테스트 (회원가입 → 프로필 → 대화 → 문의글)
-12. 배포 환경 환경변수 확인 및 연기
-```
+| # | 위치 | 내용 | 우선순위 |
+|---|------|------|---------|
+| P2-1 | `AuthService.java` | 신규 가입자 기본 리스크 체크리스트 자동 생성 | 높음 |
+| P2-2 | `DashboardService.java` | 성장 시나리오 백엔드 동적 생성 | 중간 |
+| P2-3 | `dashboard/page.tsx` | 대화 중 SSE `checklist_update` → 리스크 실시간 반영 | 중간 |
+| P2-4 | `ChatService.java` | `Message.lawReferences` 참조 법령·사례 저장 | 낮음 |
 
 ---
 
-## 7. 환경변수 체크리스트
+## 6. 환경변수 체크리스트
 
 ### 백엔드 필수 환경변수
 
