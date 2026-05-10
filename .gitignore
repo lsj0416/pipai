@@ -39,6 +39,9 @@ frontend/out/
 frontend/.cache/
 frontend/tsconfig.tsbuildinfo
 frontend/uploads/
+frontend/e2e/.auth/
+frontend/playwright-report/
+frontend/test-results/
 
 # ============================================================
 # Docker

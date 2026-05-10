@@ -39,6 +39,7 @@
   ],
   "exclude": [
     "node_modules",
-    "ui_kits"
+    "ui_kits",
+    "e2e"
   ]
 }

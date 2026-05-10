@@ -9,7 +9,13 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit",
-    "prepare": "[ -d ../.git ] && (cd .. && husky frontend/.husky) || true"
+    "prepare": "[ -d ../.git ] && (cd .. && husky frontend/.husky) || true",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:auth": "playwright test --project=auth-flows",
+    "test:e2e:ci": "CI=true playwright test"
   },
   "dependencies": {
     "next": "^16.2.4",
@@ -17,6 +23,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
