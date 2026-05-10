@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import type { NavId, RiskMiniItem, UserData, UserBusiness } from '@/lib/types';
+import { logout } from '@/lib/api/auth';
 
 interface SidebarProps {
   riskItems: RiskMiniItem[];
@@ -31,15 +32,34 @@ function NavIcon({ id }: { id: NavId }) {
   return null;
 }
 
-function UserChip({ name, business }: { name: string; business: UserBusiness }) {
+function UserChip({ name, business, onLogout }: { name: string; business: UserBusiness; onLogout: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.08)', color: 'white', marginTop: 'auto' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
-        {name[0]}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{business.name}</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{business.meta}</div>
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', color: 'white' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
+          {name[0]}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{business.name}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{business.meta}</div>
+        </div>
+        <button
+          onClick={onLogout}
+          title="로그아웃"
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'rgba(255,255,255,0.5)', padding: 4, display: 'flex', alignItems: 'center',
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
+          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -48,6 +68,11 @@ function UserChip({ name, business }: { name: string; business: UserBusiness }) 
 export default function Sidebar({ riskItems, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  async function handleLogout() {
+    await logout();
+    router.push('/login');
+  }
 
   return (
     <aside style={{
@@ -115,7 +140,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
         })}
       </div>
 
-      <UserChip name={user.name} business={user.business} />
+      <UserChip name={user.name} business={user.business} onLogout={handleLogout} />
     </aside>
   );
 }

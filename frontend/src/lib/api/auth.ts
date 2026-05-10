@@ -47,3 +47,10 @@ export async function refresh(body: RefreshRequest): Promise<ApiResponse<LoginRe
     body: JSON.stringify(body),
   });
 }
+
+export async function logout(): Promise<void> {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('accessToken');
+  }
+  await fetch('/api/auth/token', { method: 'DELETE' });
+}
