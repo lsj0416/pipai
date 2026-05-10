@@ -37,3 +37,22 @@ export async function resolveRisk(
     token,
   });
 }
+
+export interface BackendGrowthRowData {
+  title: string;
+  law: string;
+  severity: string;
+  applies: boolean;
+}
+
+export interface BackendGrowthScenario {
+  id: string;
+  label: string;
+  rows: BackendGrowthRowData[];
+}
+
+export async function getGrowthScenarios(
+  token: string,
+): Promise<ApiResponse<BackendGrowthScenario[]>> {
+  return apiRequest<BackendGrowthScenario[]>('/api/dashboard/growth-scenarios', { token });
+}

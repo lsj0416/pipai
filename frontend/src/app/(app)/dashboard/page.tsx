@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Dashboard from '@/components/dashboard/Dashboard';
-import type { ChecklistRow, GrowthScenario, DashboardSummary } from '@/lib/types';
-import { getSummary, resolveRisk, type RiskLevel } from '@/lib/api/dashboard';
+import type { ChecklistRow, GrowthScenario, DashboardSummary, SeverityActive } from '@/lib/types';
+import { getSummary, resolveRisk, getGrowthScenarios, type RiskLevel } from '@/lib/api/dashboard';
 
 const LEVEL_MAP: Record<RiskLevel, ChecklistRow['severity']> = {
   IMMEDIATE: 'high',
@@ -12,8 +12,7 @@ const LEVEL_MAP: Record<RiskLevel, ChecklistRow['severity']> = {
   GOOD: 'safe',
 };
 
-// 성장 시나리오는 마이페이지 프로필 기반으로 생성되는 항목 (백엔드 미구현)
-const GROWTH_SCENARIOS: GrowthScenario[] = [
+const FALLBACK_GROWTH: GrowthScenario[] = [
   {
     id: 'emp10', label: '직원 10명 초과 시',
     rows: [
@@ -35,6 +34,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [rows, setRows] = useState<ChecklistRow[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>({ high: 0, medium: 0, safe: 0 });
+  const [growth, setGrowth] = useState<GrowthScenario[]>(FALLBACK_GROWTH);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -43,13 +43,17 @@ export default function DashboardPage() {
     if (!token) { router.push('/login'); return; }
 
     try {
-      const res = await getSummary(token);
-      if (!res.success || !res.data) {
+      const [resSummary, resGrowth] = await Promise.all([
+        getSummary(token),
+        getGrowthScenarios(token),
+      ]);
+
+      if (!resSummary.success || !resSummary.data) {
         setError('데이터를 불러오는 중 오류가 발생했어요.');
         return;
       }
 
-      const { riskCounts, recentItems } = res.data;
+      const { riskCounts, recentItems } = resSummary.data;
       setSummary({
         high:   Number(riskCounts['IMMEDIATE']   ?? 0),
         medium: Number(riskCounts['CHECK_NEEDED'] ?? 0),
@@ -62,6 +66,19 @@ export default function DashboardPage() {
         law:      item.relatedLaw ?? '',
         done:     item.resolved,
       })));
+
+      if (resGrowth.success && resGrowth.data) {
+        setGrowth(resGrowth.data.map(s => ({
+          id: s.id,
+          label: s.label,
+          rows: s.rows.map(r => ({
+            title: r.title,
+            law: r.law,
+            severity: (r.severity as SeverityActive) ?? 'safe',
+            applies: r.applies,
+          })),
+        })));
+      }
     } catch {
       setError('데이터를 불러오는 중 오류가 발생했어요.');
     } finally {
@@ -69,8 +86,25 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    const init = () => {
+      localStorage.removeItem('dashboardNeedsRefresh');
+      void loadData();
+    };
+    init();
+  }, [loadData]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' &&
+          localStorage.getItem('dashboardNeedsRefresh') === 'true') {
+        localStorage.removeItem('dashboardNeedsRefresh');
+        loadData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [loadData]);
 
   const handleResolve = async (itemId: string) => {
     const token = localStorage.getItem('accessToken');
@@ -113,7 +147,7 @@ export default function DashboardPage() {
     <Dashboard
       rows={rows}
       summary={summary}
-      growth={GROWTH_SCENARIOS}
+      growth={growth}
       onJumpToChat={() => router.push('/chat')}
       onResolve={handleResolve}
     />

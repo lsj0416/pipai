@@ -173,6 +173,8 @@ function ChatPageContent() {
             };
             return copy;
           });
+        } else if (event.type === 'checklist_update') {
+          localStorage.setItem('dashboardNeedsRefresh', 'true');
         }
       });
       return true;

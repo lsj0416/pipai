@@ -1,7 +1,7 @@
 # PIPAi 개발 현황 문서
 
 > 작성일: 2025-05-10 | 최종 업데이트: 2025-05-11 | 마감: 2025-05-29 (18일 남음)  
-> 전체 완성도: **약 92%** (P0·P1 완료 + 검증 버그 수정)
+> 전체 완성도: **약 97%** (P0·P1·P2 완료)
 
 ---
 
@@ -33,14 +33,14 @@
 > - `LlmService.completeText()` — `bodyToMono(JsonNode.class)` 교체 (디코더 불명확 문제)
 > - `InquiryService.generate()` — LLM null 응답 시 DB 제약 위반, 빈 대화 호출 방지
 
-### 🟡 P2 — 있으면 좋지만 없어도 데모 가능
+### 🟡 P2 — 있으면 좋지만 없어도 데모 가능 ✅ **완료 (2025-05-11)**
 
-| 순위 | 작업 | 파일 | 예상 소요 |
-|------|------|------|----------|
-| 9 | 신규 가입자 기본 리스크 체크리스트 자동 생성 | `AuthService.java` | 2~3시간 |
-| 10 | 성장 시나리오 백엔드 동적 생성 | `DashboardService.java` | 반나절 |
-| 11 | 대화 중 리스크 실시간 대시보드 반영 | `dashboard/page.tsx` | 반나절 |
-| 12 | `Message.lawReferences` 법령 출처 저장 | `ChatService.java` | 2~3시간 |
+| 순위 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| 9 | 신규 가입자 기본 리스크 체크리스트 자동 생성 | `AuthService.java` | ✅ 완료 |
+| 10 | 성장 시나리오 백엔드 동적 생성 | `DashboardService.java` | ✅ 완료 |
+| 11 | 대화 중 리스크 실시간 대시보드 반영 | `dashboard/page.tsx` | ✅ 완료 |
+| 12 | `Message.lawReferences` 법령 출처 저장 | `ChatService.java` | ✅ 완료 |
 
 ### 📅 실제 진행 vs 추천 일정
 
@@ -255,14 +255,14 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
 | H-3 | `frontend/(app)/layout.tsx` | 사이드바 MOCK_USER 제거 + 실제 API 연동 | ✅ 완료 |
 | H-4 | `chat/page.tsx`, `Sidebar.tsx` | 기존 대화 이력 로드, 최근 대화 목록 | ✅ 완료 |
 
-### 🟢 P2 — 잔여 항목
+### 🟢 P2 — 전체 해결 (2025-05-11)
 
-| # | 위치 | 내용 | 우선순위 |
-|---|------|------|---------|
-| P2-1 | `AuthService.java` | 신규 가입자 기본 리스크 체크리스트 자동 생성 | 높음 |
-| P2-2 | `DashboardService.java` | 성장 시나리오 백엔드 동적 생성 | 중간 |
-| P2-3 | `dashboard/page.tsx` | 대화 중 SSE `checklist_update` → 리스크 실시간 반영 | 중간 |
-| P2-4 | `ChatService.java` | `Message.lawReferences` 참조 법령·사례 저장 | 낮음 |
+| # | 위치 | 내용 | 상태 |
+|---|------|------|------|
+| P2-1 | `AuthService.java` | 신규 가입자 기본 리스크 체크리스트 자동 생성 | ✅ 완료 |
+| P2-2 | `DashboardService.java` + `DashboardController.java` | 성장 시나리오 백엔드 동적 생성 + `/api/dashboard/growth-scenarios` 엔드포인트 | ✅ 완료 |
+| P2-3 | `ChatService.java` + `dashboard/page.tsx` + `chat/page.tsx` | SSE `checklist_update` 이벤트 emit + 탭 복귀 시 대시보드 자동 갱신 | ✅ 완료 |
+| P2-4 | `ChatService.java` + `RagPipeline.java` | `Message.lawReferences` 법령 JSON 저장, `RagResult` record로 lawRefs 노출 | ✅ 완료 |
 
 ---
 

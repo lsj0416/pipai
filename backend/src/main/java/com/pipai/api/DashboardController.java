@@ -33,4 +33,10 @@ public class DashboardController {
             @AuthenticationPrincipal UUID userId) {
         return ApiResponse.ok(dashboardService.resolveItem(id, userId));
     }
+
+    @GetMapping("/growth-scenarios")
+    public ApiResponse<List<DashboardService.GrowthScenario>> growthScenarios(
+            @AuthenticationPrincipal UUID userId) {
+        return ApiResponse.ok(dashboardService.getGrowthScenarios(userId));
+    }
 }
