@@ -11,8 +11,10 @@ import com.pipai.repository.InquiryDraftRepository;
 import com.pipai.repository.MessageRepository;
 import com.pipai.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,10 +50,17 @@ public class InquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("대화를 찾을 수 없습니다."));
 
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        if (messages.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "대화 내용이 없어 문의글을 생성할 수 없습니다.");
+        }
 
         String conversationText = buildConversationText(messages);
         String generated = llmService.completeText(SYSTEM_PROMPT,
                 "다음 대화를 바탕으로 문의글을 작성해주세요:\n\n" + conversationText).block();
+
+        if (generated == null || generated.isBlank()) {
+            generated = "제목: 개인정보보호법 관련 문의\n\n문의 내용을 생성할 수 없습니다. 직접 작성해 주세요.\n\n관련 법령: ";
+        }
 
         String subject = parseSubject(generated);
         String content = parseContent(generated);
@@ -88,7 +97,7 @@ public class InquiryService {
     }
 
     private String parseContent(String text) {
-        if (text == null || text.isBlank()) return text;
+        if (text == null || text.isBlank()) return "";
         String[] lines = text.split("\n");
         StringBuilder sb = new StringBuilder();
         boolean inContent = false;

@@ -111,16 +111,8 @@ public class LlmService {
                 .uri("/chat/completions")
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToMono(String.class)
-                .map(body -> {
-                    try {
-                        JsonNode root = MAPPER.readTree(body);
-                        return root.path("choices").path(0).path("message").path("content").asText("");
-                    } catch (Exception e) {
-                        log.debug("LLM 응답 파싱 실패: {}", body);
-                        return "";
-                    }
-                })
+                .bodyToMono(JsonNode.class)
+                .map(root -> root.path("choices").path(0).path("message").path("content").asText(""))
                 .onErrorMap(e -> new LlmException("LLM 호출 실패", e));
     }
 
