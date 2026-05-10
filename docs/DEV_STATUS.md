@@ -1,7 +1,7 @@
 # PIPAi 개발 현황 문서
 
 > 작성일: 2025-05-10 | 최종 업데이트: 2025-05-11 | 마감: 2025-05-29 (18일 남음)  
-> 전체 완성도: **약 97%** (P0·P1·P2 완료)
+> 전체 완성도: **약 99%** (P0·P1·P2 완료 + QA 버그 수정 + E2E 테스트 완료)
 
 ---
 
@@ -33,6 +33,16 @@
 > - `LlmService.completeText()` — `bodyToMono(JsonNode.class)` 교체 (디코더 불명확 문제)
 > - `InquiryService.generate()` — LLM null 응답 시 DB 제약 위반, 빈 대화 호출 방지
 
+### 🟢 P3 — QA 버그 수정 + E2E 테스트 ✅ **완료 (2025-05-11)**
+
+| 순위 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| 13 | SSE 파싱 버그: `data:` 뒤 공백 포함 토큰 앞 공백 유실 수정 | `frontend/src/lib/api/conversations.ts` | ✅ 완료 |
+| 14 | 리스크 패널 실시간 업데이트: `checklist_update` SSE → `riskUpdate` CustomEvent | `Sidebar.tsx`, `chat/page.tsx` | ✅ 완료 |
+| 15 | 백엔드 재빌드·재시작 (`growth-scenarios` 엔드포인트 반영) | — | ✅ 완료 |
+| 16 | Playwright E2E 테스트 18개 구축 (모킹 기반, 백엔드 불필요) | `frontend/e2e/` | ✅ 완료 |
+| 17 | E2E 테스트 가이드 문서 작성 | `docs/E2E_TEST.md` | ✅ 완료 |
+
 ### 🟡 P2 — 있으면 좋지만 없어도 데모 가능 ✅ **완료 (2025-05-11)**
 
 | 순위 | 작업 | 파일 | 상태 |
@@ -47,9 +57,10 @@
 ```
 [완료] 5/10       → P0 전체 완료 (예정보다 4일 단축)
 [완료] 5/10~5/11  → P1 전체 완료 + 검증·버그 수정 (예정보다 7일 단축)
-[진행 예정] 5/11~5/14  → P2: 리스크 자동 생성 + 성장 시나리오
-[진행 예정] 5/15~5/22  → QA 준비 + E2E 시나리오 테스트
-[진행 예정] 5/23~5/29  → 최종 QA + 배포 안정화 + 발표 자료
+[완료] 5/11       → P2: 리스크 자동 생성 + 성장 시나리오
+[완료] 5/11       → QA 버그 수정 3건 + E2E 테스트 18개 + 문서화
+[진행 예정] 5/12~5/20  → 배포 안정화 (ECS Fargate 재배포 + 환경변수 확인)
+[진행 예정] 5/21~5/29  → 최종 QA (프로덕션) + 발표 자료 준비
 ```
 
 ---
@@ -74,7 +85,7 @@
 | RAG 파이프라인 | 95% | LLM 파싱·저장·문의글 생성 모두 완성 |
 | 외부 API 연동 | 90% | 파싱 완성, LawDataSyncService 변경이력 감지 미완 |
 | 벡터 DB | 90% | 초기 데이터 자동 로드 완성 (DataInitializer) |
-| 프론트엔드 페이지 | 98% | 성장 시나리오 하드코딩만 P2 잔여 |
+| 프론트엔드 페이지 | 100% | SSE 파싱·리스크 패널 실시간 업데이트 완료 |
 | 프론트엔드 API 함수 | 100% | 전 엔드포인트 연동 완성 |
 | DB 마이그레이션 | 100% | V1~V6 완성 |
 | 초기 데이터 | 90% | 법령·사례 자동 로드, 기본 리스크 체크리스트만 P2 잔여 |
@@ -166,8 +177,8 @@
 |--------|------|------|------|
 | 로그인 | `/login` | ✅ 완성 | — |
 | 회원가입 | `/signup` | ✅ 완성 | — |
-| 채팅 | `/chat` | ✅ 완성 | `?conversationId` 파라미터로 기존 대화 이력 로드 |
-| 대시보드 | `/dashboard` | ⚠️ 부분 | 성장 시나리오 하드코딩 — P2 |
+| 채팅 | `/chat` | ✅ 완성 | SSE 파싱 버그 수정, `checklist_update` → 사이드바 실시간 반영 |
+| 대시보드 | `/dashboard` | ✅ 완성 | 성장 시나리오 백엔드 연동 완료 |
 | 마이페이지 | `/mypage` | ✅ 완성 | 10단계 폼 완성 |
 | 문의글 | `/inquiry` | ✅ 완성 | InquiryService 완성으로 정상 동작 |
 
@@ -199,16 +210,11 @@
 
 ### 3-4. 잔여 하드코딩 항목
 
-**`frontend/src/app/(app)/dashboard/page.tsx` — P2 대상**
-```typescript
-// 성장 시나리오는 마이페이지 프로필 기반으로 생성되는 항목 (백엔드 미구현)
-const GROWTH_SCENARIOS: GrowthScenario[] = [
-  { id: 'emp10', label: '직원 10명 초과 시', rows: [...] },
-  { id: 'rev1b', label: '매출 10억 초과 시', rows: [...] },
-];
-```
+~~`frontend/src/app/(app)/dashboard/page.tsx` — 성장 시나리오 하드코딩~~ → 백엔드 `/api/dashboard/growth-scenarios` 연동 완료, API 오류 시 `FALLBACK_GROWTH`로 graceful fallback (2025-05-11)
 
 > ~~`layout.tsx` MOCK_USER~~ → 실제 프로필·리스크 API 연동 완료 (2025-05-10)
+
+**현재 하드코딩 없음**
 
 ---
 
@@ -306,5 +312,6 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
 - [API 명세](./API_SPEC.md)
 - [DB 스키마](./ERD.md)
 - [시스템 아키텍처](./ARCHITECTURE.md)
+- [E2E 테스트 가이드](./E2E_TEST.md)
 - [백엔드 개발 규칙](../backend/CLAUDE.md)
 - [프론트엔드 개발 규칙](../frontend/CLAUDE.md)
