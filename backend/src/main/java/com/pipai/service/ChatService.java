@@ -56,9 +56,15 @@ public class ChatService {
 
         messageRepository.save(Message.ofUser(conv, userMessage));
 
+        StringBuilder accumulator = new StringBuilder();
+
         return ragPipeline.generateAnswer(userMessage, userId)
+                .doOnNext(accumulator::append)
                 .doOnComplete(() -> {
-                    // 스트리밍 완료 후 메시지 저장은 별도 처리
+                    String fullResponse = accumulator.toString();
+                    if (!fullResponse.isBlank()) {
+                        messageRepository.save(Message.ofAssistant(conv, fullResponse, null));
+                    }
                 });
     }
 }

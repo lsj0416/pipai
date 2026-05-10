@@ -1,5 +1,7 @@
 package com.pipai.rag;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pipai.common.LocalEnvResolver;
 import com.pipai.common.exception.LlmException;
 import com.pipai.domain.CompanyProfile;
@@ -17,6 +19,7 @@ import java.util.Map;
 public class LlmService {
 
     private static final String DISCLAIMER = "\n\n⚠️ 이 답변은 참고용이며, 법적 효력이 없습니다. 중요한 사항은 반드시 전문가와 상담하세요.";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final WebClient webClient;
     private final String chatModel;
@@ -56,8 +59,9 @@ public class LlmService {
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToFlux(String.class)
-                .filter(chunk -> chunk.contains("content"))
+                .filter(chunk -> !chunk.isBlank() && !chunk.contains("[DONE]"))
                 .map(this::extractContent)
+                .filter(content -> !content.isEmpty())
                 .onErrorMap(e -> new LlmException("LLM 스트리밍 실패", e))
                 .concatWith(Flux.just(DISCLAIMER));
     }
@@ -91,12 +95,18 @@ public class LlmService {
         return sb.toString();
     }
 
-    private String extractContent(String sseChunk) {
-        // SSE 데이터에서 content 추출 (간단 파싱)
-        int idx = sseChunk.indexOf("\"content\":\"");
-        if (idx < 0) return "";
-        int start = idx + 11;
-        int end = sseChunk.indexOf("\"", start);
-        return end > start ? sseChunk.substring(start, end) : "";
+    String extractContent(String sseChunk) {
+        // "data: " 프리픽스 제거
+        String data = sseChunk.startsWith("data:") ? sseChunk.substring(5).trim() : sseChunk.trim();
+        if (data.isEmpty() || "[DONE]".equals(data)) return "";
+
+        try {
+            JsonNode root = MAPPER.readTree(data);
+            JsonNode content = root.path("choices").path(0).path("delta").path("content");
+            return content.isMissingNode() || content.isNull() ? "" : content.asText();
+        } catch (Exception e) {
+            log.debug("SSE 청크 파싱 실패: {}", data);
+            return "";
+        }
     }
 }

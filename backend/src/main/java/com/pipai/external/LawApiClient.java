@@ -45,15 +45,112 @@ public class LawApiClient {
         }
     }
 
+    // 법령 ID로 조문 전체 조회 (데이터 동기화용)
+    public List<LawChunk> fetchLawArticles(String lawId) {
+        try {
+            var response = webClient.get()
+                    .uri(u -> u.path("/lawService.do")
+                            .queryParam("OC", apiKey)
+                            .queryParam("target", "law")
+                            .queryParam("ID", lawId)
+                            .queryParam("type", "JSON")
+                            .build())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+            return parseLawArticles(lawId, response);
+        } catch (Exception e) {
+            log.warn("법령 조문 조회 실패 (lawId={}): {}", lawId, e.getMessage());
+            return List.of();
+        }
+    }
+
     public List<LawChunk> fetchRecentlyAmended() {
-        // 최근 개정 법령 조회 — 실제 구현 시 변경이력 API 활용
         return searchLaws("개인정보");
     }
 
     @SuppressWarnings("unchecked")
-    private List<LawChunk> parseLawChunks(Map<String, Object> response) {
+    List<LawChunk> parseLawChunks(Map<String, Object> response) {
         if (response == null) return List.of();
-        // 응답 파싱 로직 (법제처 API 응답 구조에 맞춰 구현 필요)
-        return List.of();
+
+        try {
+            Map<String, Object> lawSearch = (Map<String, Object>) response.get("LawSearch");
+            if (lawSearch == null) {
+                log.warn("법제처 응답에 LawSearch 키 없음: {}", response.keySet());
+                return List.of();
+            }
+
+            Object lawObj = lawSearch.get("law");
+            List<Map<String, Object>> laws;
+            if (lawObj instanceof List<?> list) {
+                laws = (List<Map<String, Object>>) list;
+            } else if (lawObj instanceof Map<?, ?> map) {
+                // 결과가 1건일 때 배열 대신 객체로 오는 경우
+                laws = List.of((Map<String, Object>) map);
+            } else {
+                return List.of();
+            }
+
+            return laws.stream()
+                    .map(law -> new LawChunk(
+                            String.valueOf(law.getOrDefault("법령ID", "")),
+                            String.valueOf(law.getOrDefault("법령명한글", "")),
+                            "",
+                            String.valueOf(law.getOrDefault("소관부처명", "")) + " — " +
+                            String.valueOf(law.getOrDefault("법령구분명", ""))
+                    ))
+                    .filter(chunk -> !chunk.lawId().isEmpty() && !chunk.lawName().isEmpty())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("법령 검색 응답 파싱 실패: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<LawChunk> parseLawArticles(String lawId, Map<String, Object> response) {
+        if (response == null) return List.of();
+
+        try {
+            Map<String, Object> law = (Map<String, Object>) response.get("법령");
+            if (law == null) return List.of();
+
+            Map<String, Object> basicInfo = (Map<String, Object>) law.get("기본정보");
+            Map<String, Object> lawNameMap = (Map<String, Object>) basicInfo.get("법령명");
+            String lawName = String.valueOf(lawNameMap.getOrDefault("한글법령명", ""));
+
+            Map<String, Object> articlesWrapper = (Map<String, Object>) law.get("조문");
+            if (articlesWrapper == null) return List.of();
+
+            Object articleUnitsObj = articlesWrapper.get("조문단위");
+            List<Map<String, Object>> articleUnits;
+            if (articleUnitsObj instanceof List<?> list) {
+                articleUnits = (List<Map<String, Object>>) list;
+            } else if (articleUnitsObj instanceof Map<?, ?> map) {
+                articleUnits = List.of((Map<String, Object>) map);
+            } else {
+                return List.of();
+            }
+
+            return articleUnits.stream()
+                    .map(article -> {
+                        String articleNo = "제" + article.get("조문번호") + "조";
+                        Object title = article.get("조문제목");
+                        if (title != null && !String.valueOf(title).isBlank()) {
+                            articleNo += "(" + title + ")";
+                        }
+                        return new LawChunk(
+                                lawId,
+                                lawName,
+                                articleNo,
+                                String.valueOf(article.getOrDefault("조문내용", ""))
+                        );
+                    })
+                    .filter(chunk -> !chunk.content().isBlank())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("법령 조문 파싱 실패 (lawId={}): {}", lawId, e.getMessage());
+            return List.of();
+        }
     }
 }

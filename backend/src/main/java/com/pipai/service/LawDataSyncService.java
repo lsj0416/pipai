@@ -21,14 +21,20 @@ public class LawDataSyncService {
     @Scheduled(cron = "0 0 2 1 * *")
     public void syncLawData() {
         log.info("법령 데이터 동기화 시작");
+        int count = 0;
         try {
-            var laws = lawApiClient.fetchRecentlyAmended();
-            for (var law : laws) {
-                float[] embedding = embeddingService.embed(law.content());
-                lawEmbeddingRepository.upsert(law.lawId(), law.articleNumber(),
-                        law.content(), law.lawName(), embedding);
+            var recentlyAmended = lawApiClient.fetchRecentlyAmended();
+            for (var lawMeta : recentlyAmended) {
+                var articles = lawApiClient.fetchLawArticles(lawMeta.lawId());
+                for (var article : articles) {
+                    if (article.content().isBlank()) continue;
+                    float[] embedding = embeddingService.embed(article.content());
+                    lawEmbeddingRepository.upsert(article.lawId(), article.articleNumber(),
+                            article.content(), article.lawName(), embedding);
+                    count++;
+                }
             }
-            log.info("법령 데이터 동기화 완료: {}건", laws.size());
+            log.info("법령 데이터 동기화 완료: {}건", count);
         } catch (Exception e) {
             log.error("법령 데이터 동기화 실패", e);
         }
