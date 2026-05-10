@@ -136,8 +136,8 @@ export async function sendMessage(
 
     for (const line of lines) {
       if (!line.startsWith('data:')) continue;
-      // Spring SSE writes "data:" (no space); RFC allows both "data:" and "data: "
-      const raw = line.startsWith('data: ') ? line.slice(6).trim() : line.slice(5).trim();
+      // Spring SSE: data:token (no separator space). Leading space in token must be preserved.
+      const raw = line.slice(5).trimEnd();
       if (!raw) continue;
       if (raw === '[DONE]') {
         onEvent({ type: 'done' });

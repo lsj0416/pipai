@@ -175,6 +175,7 @@ function ChatPageContent() {
           });
         } else if (event.type === 'checklist_update') {
           localStorage.setItem('dashboardNeedsRefresh', 'true');
+          window.dispatchEvent(new CustomEvent('riskUpdate'));
         }
       });
       return true;

@@ -3,9 +3,10 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Logo from '@/components/Logo';
-import type { NavId, RiskMiniItem, UserData, UserBusiness } from '@/lib/types';
+import type { NavId, RiskMiniItem, SeverityActive, UserData, UserBusiness } from '@/lib/types';
 import { logout } from '@/lib/api/auth';
 import { listConversations, type ConversationListItem } from '@/lib/api/conversations';
+import { getRisks } from '@/lib/api/dashboard';
 
 interface SidebarProps {
   riskItems: RiskMiniItem[];
@@ -71,6 +72,33 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [localRiskItems, setLocalRiskItems] = useState<RiskMiniItem[]>(riskItems);
+
+  useEffect(() => {
+    const handleRiskUpdate = () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      const levelMap: Record<string, SeverityActive> = {
+        IMMEDIATE: 'high',
+        CHECK_NEEDED: 'medium',
+        GOOD: 'safe',
+      };
+      getRisks(token)
+        .then(res => {
+          if (res.success && res.data) {
+            setLocalRiskItems(
+              res.data
+                .filter(r => !r.resolved)
+                .slice(0, 5)
+                .map(r => ({ label: r.title, severity: levelMap[r.level] ?? 'medium' })),
+            );
+          }
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('riskUpdate', handleRiskUpdate);
+    return () => window.removeEventListener('riskUpdate', handleRiskUpdate);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -179,10 +207,10 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', padding: '14px 22px 4px' }}>리스크 현황</div>
       <div style={{ margin: '4px 16px 0', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginBottom: 10, letterSpacing: '-0.01em' }}>기업 프로필 기반 진단</div>
-        {riskItems.length === 0 && (
+        {localRiskItems.length === 0 && (
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>진단 항목 없음</div>
         )}
-        {riskItems.map((it, i) => {
+        {localRiskItems.map((it, i) => {
           const p = SEV_PILL[it.severity] ?? { bg: 'var(--gray-400)', label: '미확인' };
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', gap: 8 }}>
