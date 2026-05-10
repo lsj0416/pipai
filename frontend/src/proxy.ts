@@ -17,7 +17,7 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isPublic && token && pathname !== '/api/auth') {
+  if (isPublic && token && !pathname.startsWith('/api/')) {
     const chatUrl = request.nextUrl.clone();
     chatUrl.pathname = '/chat';
     return NextResponse.redirect(chatUrl);

@@ -71,7 +71,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
 
   async function handleLogout() {
     await logout();
-    router.push('/login');
+    window.location.href = '/login';
   }
 
   return (
