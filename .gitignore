@@ -57,3 +57,4 @@ pgdata/
 *.war
 *.class
 !backend/gradle/wrapper/gradle-wrapper.jar
+.gstack/
