@@ -14,6 +14,8 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 import java.util.Map;
 
+import reactor.core.publisher.Mono;
+
 @Service
 @Slf4j
 public class LlmService {
@@ -93,6 +95,33 @@ public class LlmService {
         }
 
         return sb.toString();
+    }
+
+    public Mono<String> completeText(String systemPrompt, String userMessage) {
+        var requestBody = Map.of(
+                "model", chatModel,
+                "stream", false,
+                "messages", List.of(
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userMessage)
+                )
+        );
+
+        return webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(body -> {
+                    try {
+                        JsonNode root = MAPPER.readTree(body);
+                        return root.path("choices").path(0).path("message").path("content").asText("");
+                    } catch (Exception e) {
+                        log.debug("LLM 응답 파싱 실패: {}", body);
+                        return "";
+                    }
+                })
+                .onErrorMap(e -> new LlmException("LLM 호출 실패", e));
     }
 
     String extractContent(String sseChunk) {

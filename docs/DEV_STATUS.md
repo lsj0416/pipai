@@ -1,7 +1,7 @@
 # PIPAi 개발 현황 문서
 
 > 작성일: 2025-05-10 | 최종 업데이트: 2025-05-10 | 마감: 2025-05-29 (19일 남음)  
-> 전체 완성도: **약 75%** (P0 완료)
+> 전체 완성도: **약 88%** (P0·P1 완료)
 
 ---
 
@@ -21,13 +21,13 @@
 
 > 단위 테스트 17개 전체 통과 확인 (LlmServiceTest 7개, LawApiClientTest 5개, PipcApiClientTest 5개)
 
-### 🟠 P1 — 완성도·신뢰도에 직접 영향
+### 🟠 P1 — 완성도·신뢰도에 직접 영향 ✅ **완료 (2025-05-10)**
 
-| 순위 | 작업 | 파일 | 예상 소요 |
-|------|------|------|----------|
-| 6 | `InquiryService.generate()` LLM 문의글 생성 | `service/InquiryService.java:28` | 반나절 |
-| 7 | `layout.tsx` MOCK_USER → 실제 프로필 API 호출 | `(app)/layout.tsx:4` | 1~2시간 |
-| 8 | 채팅 이력 초기 로드 (기존 대화 재열기) | `chat/page.tsx` | 2~3시간 |
+| 순위 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| 6 | `InquiryService.generate()` LLM 문의글 생성 | `service/InquiryService.java` | ✅ 완료 |
+| 7 | `layout.tsx` MOCK_USER → 실제 프로필 API 호출 | `(app)/layout.tsx` | ✅ 완료 |
+| 8 | 채팅 이력 초기 로드 (기존 대화 재열기) | `chat/page.tsx`, `Sidebar.tsx` | ✅ 완료 |
 
 ### 🟡 P2 — 있으면 좋지만 없어도 데모 가능
 
@@ -107,7 +107,7 @@
 | `ProfileService` | ✅ 완성 | — |
 | `ChatService` | ⚠️ 부분 | `sendMessage()` 스트리밍 완료 후 AI 응답 저장 미구현 (`doOnComplete` 주석만 존재, line 61) |
 | `DashboardService` | ✅ 완성 | — |
-| `InquiryService` | ❌ 미완성 | `generate()` 메서드가 더미 데이터만 반환 (line 28~29에 TODO 주석) |
+| `InquiryService` | ✅ 완성 | `generate()` LLM 호출·파싱·InquiryDraft 저장 구현 완료 |
 | `LawDataSyncService` | ⚠️ 부분 | 스케줄러 구조 완성, 실제 데이터 동기화 미작동 |
 
 ### 2-3. RAG 파이프라인
@@ -261,7 +261,7 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
 | C-1 | `external/LawApiClient.java` | `parseLawChunks()` 응답 파싱 | ✅ 완료 |
 | C-2 | `external/PipcApiClient.java` | `parseCaseData()` 응답 파싱 | ✅ 완료 |
 | C-3 | `service/DataInitializer.java` | 벡터 DB 초기 데이터 로드 | ✅ 완료 (신규 파일) |
-| C-4 | `service/InquiryService.java:28` | `generate()` LLM 문의글 생성 | ⏳ P1 진행 예정 |
+| C-4 | `service/InquiryService.java` | `generate()` LLM 문의글 생성 | ✅ 완료 |
 
 ### 🟡 High — 불완전한 동작
 
@@ -269,14 +269,14 @@ const GROWTH_SCENARIOS: GrowthScenario[] = [
 |---|------|------|------|
 | H-1 | `rag/LlmService.java` | `extractContent()` SSE JSON 파싱 | ✅ 완료 |
 | H-2 | `service/ChatService.java` | AI 응답 스트리밍 완료 후 DB 저장 | ✅ 완료 |
-| H-3 | `frontend/(app)/layout.tsx:4` | 사이드바 MOCK_USER 하드코딩 | ⏳ P1 진행 예정 |
+| H-3 | `frontend/(app)/layout.tsx:4` | 사이드바 MOCK_USER 하드코딩 | ✅ 완료 |
 | H-4 | `frontend/dashboard/page.tsx:16` | 성장 시나리오 하드코딩 | ⏳ P2 진행 예정 |
 
 ### 🟢 Medium — UX 개선 필요
 
 | # | 위치 | 내용 |
 |---|------|------|
-| M-1 | 채팅 페이지 | 기존 대화 클릭 시 메시지 이력 불러오기 미구현 |
+| M-1 | 채팅 페이지 | 기존 대화 클릭 시 메시지 이력 불러오기 | ✅ 완료 |
 | M-2 | 대시보드 | 대화 중 SSE `checklist_update` 이벤트 수신 → 리스크 실시간 갱신 미구현 |
 | M-3 | 회원가입 flow | 가입 완료 시 기본 리스크 체크리스트 자동 생성 미구현 |
 | M-4 | `Message.lawReferences` 필드 | AI 응답에서 참조 법령·사례 저장 로직 없음 |

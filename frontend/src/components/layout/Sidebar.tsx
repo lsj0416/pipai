@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Logo from '@/components/Logo';
 import type { NavId, RiskMiniItem, UserData, UserBusiness } from '@/lib/types';
 import { logout } from '@/lib/api/auth';
+import { listConversations, type ConversationListItem } from '@/lib/api/conversations';
 
 interface SidebarProps {
   riskItems: RiskMiniItem[];
@@ -68,6 +70,20 @@ function UserChip({ name, business, onLogout }: { name: string; business: UserBu
 export default function Sidebar({ riskItems, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    listConversations(token)
+      .then(res => {
+        if (res.success && res.data) {
+          setConversations(res.data.slice(0, 8));
+        }
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   async function handleLogout() {
     await logout();
@@ -79,6 +95,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
       width: 260, flexShrink: 0,
       background: 'var(--bg-sidebar)', color: 'white',
       display: 'flex', flexDirection: 'column', height: '100%',
+      overflowY: 'auto',
     }}>
       {/* 로고 */}
       <div style={{ padding: '22px 22px 6px' }}>
@@ -98,6 +115,42 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M12 5v14M5 12h14"/></svg>
         새 대화 시작
       </button>
+
+      {/* 최근 대화 목록 */}
+      {conversations.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', padding: '14px 22px 4px' }}>최근 대화</div>
+          {conversations.map(conv => {
+            const isActive = pathname === '/chat' && typeof window !== 'undefined'
+              && new URLSearchParams(window.location.search).get('conversationId') === conv.conversationId;
+            return (
+              <button
+                key={conv.conversationId}
+                onClick={() => router.push(`/chat?conversationId=${conv.conversationId}`)}
+                style={{
+                  width: 'calc(100% - 16px)', margin: '0 8px', textAlign: 'left',
+                  padding: '8px 14px', borderRadius: 8, border: 'none',
+                  background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: 'white', fontSize: 12, fontFamily: 'var(--font-body)',
+                  fontWeight: 400, cursor: 'pointer',
+                  letterSpacing: '-0.01em',
+                }}
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85 }}>
+                  {conv.title || '대화'}
+                </div>
+                {conv.lastMessage && (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                    {conv.lastMessage}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </>
+      )}
 
       {/* 메뉴 섹션 */}
       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', padding: '14px 22px 4px' }}>메뉴</div>

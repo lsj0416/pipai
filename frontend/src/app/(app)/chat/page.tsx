@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Topbar from '@/components/layout/Topbar';
 import ChatThread from '@/components/chat/ChatThread';
 import Composer from '@/components/chat/Composer';
 import type { ChatMessage } from '@/lib/types';
-import { createConversation, sendMessage } from '@/lib/api/conversations';
+import { createConversation, sendMessage, getMessages } from '@/lib/api/conversations';
 
 const WELCOME: ChatMessage = {
   role: 'assistant',
@@ -16,33 +16,54 @@ const WELCOME: ChatMessage = {
   }],
 };
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
-  const conversationIdRef = useRef<string | null>(null);
-  const [convId, setConvId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const existingConvId = searchParams.get('conversationId');
+
+  const conversationIdRef = useRef<string | null>(existingConvId);
+  const [convId, setConvId] = useState<string | null>(existingConvId);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [streaming, setStreaming] = useState(false);
+  const [loading, setLoading] = useState(!!existingConvId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 마운트 시 선제적으로 대화 생성 (실패해도 send()에서 재시도)
-  // cancelled ref로 React StrictMode 이중 실행 시 중복 생성 방지
   useEffect(() => {
     let cancelled = false;
     const token = localStorage.getItem('accessToken');
     if (!token) { router.push('/login'); return; }
 
-    createConversation(token, '개인정보보호 리스크 진단')
-      .then(res => {
-        if (!cancelled && res.success && res.data) {
-          conversationIdRef.current = res.data.id;
-          setConvId(res.data.id);
-        }
-      })
-      .catch(() => {
-        // 실패해도 UI는 정상 — send()에서 재시도
-      });
+    if (existingConvId) {
+      getMessages(token, existingConvId)
+        .then(res => {
+          if (cancelled) return;
+          if (res.success && res.data && res.data.messages.length > 0) {
+            const loaded: ChatMessage[] = res.data.messages.map(m =>
+              m.role === 'user'
+                ? { role: 'user' as const, content: m.content }
+                : {
+                    role: 'assistant' as const,
+                    parts: [{ type: 'text' as const, html: m.content.replace(/\n/g, '<br/>') }],
+                  },
+            );
+            setMessages(loaded);
+          }
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setLoading(false); });
+    } else {
+      createConversation(token, '개인정보보호 리스크 진단')
+        .then(res => {
+          if (!cancelled && res.success && res.data) {
+            conversationIdRef.current = res.data.id;
+            setConvId(res.data.id);
+          }
+        })
+        .catch(() => {});
+    }
+
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, existingConvId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -50,7 +71,6 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  // 대화 ID를 보장하는 헬퍼 (없으면 새로 생성)
   const ensureConversationId = async (token: string): Promise<string | null> => {
     if (conversationIdRef.current) return conversationIdRef.current;
     try {
@@ -101,13 +121,13 @@ export default function ChatPage() {
     setStreaming(true);
 
     try {
-      const convId = await ensureConversationId(token);
-      if (!convId) {
+      const cid = await ensureConversationId(token);
+      if (!cid) {
         replaceLastAssistantText('서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.<br/>백엔드 서버가 실행 중인지 확인해 주세요.');
         return true;
       }
 
-      await sendMessage(token, convId, text, (event) => {
+      await sendMessage(token, cid, text, (event) => {
         if (event.type === 'error') {
           replaceLastAssistantText(
             typeof event.content === 'string'
@@ -190,9 +210,23 @@ export default function ChatPage() {
         </div>
       )}
       <div className="chat-scroll" ref={scrollRef}>
-        <ChatThread messages={messages} onPickQuick={send} />
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14 }}>
+            대화 이력을 불러오는 중...
+          </div>
+        ) : (
+          <ChatThread messages={messages} onPickQuick={send} />
+        )}
       </div>
-      <Composer onSend={send} disabled={streaming} />
+      <Composer onSend={send} disabled={streaming || loading} />
     </>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense>
+      <ChatPageContent />
+    </Suspense>
   );
 }

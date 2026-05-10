@@ -3,21 +3,42 @@ package com.pipai.service;
 import com.pipai.common.exception.ResourceNotFoundException;
 import com.pipai.domain.Conversation;
 import com.pipai.domain.InquiryDraft;
+import com.pipai.domain.Message;
 import com.pipai.domain.User;
+import com.pipai.rag.LlmService;
 import com.pipai.repository.ConversationRepository;
+import com.pipai.repository.InquiryDraftRepository;
+import com.pipai.repository.MessageRepository;
 import com.pipai.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class InquiryService {
 
+    private static final String SYSTEM_PROMPT = """
+            당신은 개인정보보호법 전문가입니다. 아래 대화 내용을 바탕으로 개인정보보호위원회나 전문 변호사에게 제출할 수 있는 법적 문의글을 작성해주세요.
+
+            다음 형식을 정확히 따르세요:
+
+            제목: [문의 제목 — 핵심 이슈를 간결하게]
+
+            [문의 내용 — 사업체 상황, 개인정보 처리 현황, 우려 사항, 질문을 법적 용어로 구조화하여 3~5단락으로 작성]
+
+            관련 법령: [관련 법령 조문을 콤마로 구분하여 나열, 예: 개인정보보호법 제15조, 제17조]
+            """;
+
     private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
+    private final InquiryDraftRepository inquiryDraftRepository;
+    private final LlmService llmService;
 
     @Transactional
     public InquiryDraft generate(UUID userId, UUID conversationId) {
@@ -25,7 +46,78 @@ public class InquiryService {
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("대화를 찾을 수 없습니다."));
-        // TODO: LLM으로 대화 내용을 법적 용어로 구조화
-        return InquiryDraft.create(user, conv, "문의 초안", "내용을 입력하세요.", null);
+
+        List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        String conversationText = buildConversationText(messages);
+        String generated = llmService.completeText(SYSTEM_PROMPT,
+                "다음 대화를 바탕으로 문의글을 작성해주세요:\n\n" + conversationText).block();
+
+        String subject = parseSubject(generated);
+        String content = parseContent(generated);
+        String relatedLaws = parseRelatedLaws(generated);
+
+        Optional<InquiryDraft> existing = inquiryDraftRepository.findByConversationId(conversationId);
+        if (existing.isPresent()) {
+            existing.get().updateContent(subject, content, relatedLaws);
+            return inquiryDraftRepository.save(existing.get());
+        }
+
+        return inquiryDraftRepository.save(InquiryDraft.create(user, conv, subject, content, relatedLaws));
+    }
+
+    private String buildConversationText(List<Message> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (Message msg : messages) {
+            String role = msg.getRole() == Message.Role.USER ? "사용자" : "AI 어시스턴트";
+            sb.append(role).append(": ").append(msg.getContent()).append("\n\n");
+        }
+        return sb.toString();
+    }
+
+    private String parseSubject(String text) {
+        if (text == null || text.isBlank()) return "개인정보보호법 관련 문의";
+        for (String line : text.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("제목:")) {
+                String subject = trimmed.substring(3).trim();
+                return subject.isBlank() ? "개인정보보호법 관련 문의" : subject;
+            }
+        }
+        return "개인정보보호법 관련 문의";
+    }
+
+    private String parseContent(String text) {
+        if (text == null || text.isBlank()) return text;
+        String[] lines = text.split("\n");
+        StringBuilder sb = new StringBuilder();
+        boolean inContent = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("제목:")) {
+                inContent = true;
+                continue;
+            }
+            if (trimmed.startsWith("관련 법령:")) {
+                break;
+            }
+            if (inContent) {
+                sb.append(line).append("\n");
+            }
+        }
+        String result = sb.toString().trim();
+        return result.isBlank() ? text : result;
+    }
+
+    private String parseRelatedLaws(String text) {
+        if (text == null || text.isBlank()) return null;
+        for (String line : text.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("관련 법령:")) {
+                String laws = trimmed.substring(6).trim();
+                return laws.isBlank() ? null : laws;
+            }
+        }
+        return null;
     }
 }
