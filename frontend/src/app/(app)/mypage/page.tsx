@@ -7,7 +7,7 @@ import { upsertProfile, getProfile } from '@/lib/api/profile';
 const SECTIONS = [
   '기본정보', '담당자 정보', '사업자 규모', '개인정보 처리 현황',
   '처리 위탁·제공 현황', '처리 환경', '안전조치 현황', '마케팅·광고 활용',
-  '성장 시나리오', '약관 동의',
+  '성장 시나리오',
 ];
 
 // ── 선택지 상수 ──────────────────────────────────────────────────────────────
@@ -36,6 +36,18 @@ const DATA_SUBJECT_RANGES: { label: string; trigger: string | null }[] = [
   { label: '1,000만명 이상', trigger: '10% 징벌적 과징금 대상' },
 ];
 
+const DELEGATEE_TYPES = [
+  '배송업체', '결제대행 (PG사)', '고객센터·CS', '마케팅 대행',
+  '클라우드 서비스 (AWS, GCP 등)', '시스템 개발·운영 외주', '데이터 분석', '기타',
+];
+
+const CONTRACT_OPTIONS = [
+  { v: 'written', l: '서면 계약', warn: false },
+  { v: 'verbal', l: '구두 계약만', warn: true },
+  { v: 'none', l: '계약 없음', warn: true },
+  { v: 'unknown', l: '불명확', warn: false },
+];
+
 // ── 폼 상태 타입 ─────────────────────────────────────────────────────────────
 interface FormState {
   s1_companyName: string; s1_repName: string; s1_bizNo: string;
@@ -43,10 +55,12 @@ interface FormState {
   s2_name: string; s2_title: string; s2_email: string; s2_phone: string;
   s3_industry: string; s3_industryDetail: string; s3_employees: string;
   s3_revenue: string; s3_largeAssets: string;
-  s4_subjectRange: string; s4_general: string[]; s4_uniqueId: string[];
+  s4_subjectRange: string; s4_general: string[]; s4_generalOther: string;
+  s4_uniqueId: string[];
   s4_sensitive: string[]; s4_credit: string[]; s4_location: string[];
   s4_methods: string[]; s4_purposes: string[];
-  s5_delegation: string; s5_delegatees: string[]; s5_contract: string;
+  s5_delegation: string; s5_delegatees: string[];
+  s5_contractPerType: Record<string, string>;
   s5_provision: string; s5_provisionPurpose: string;
   s5_overseas: string; s5_overseasCountry: string;
   s6_channels: string[]; s6_websiteUrl: string; s6_appName: string;
@@ -56,7 +70,6 @@ interface FormState {
   s8_marketing: string; s8_channels: string[]; s8_consent: string;
   s9_plans: string[]; s9_employees: string; s9_revenue: string;
   s9_subjectScale: string; s9_newBiz: string;
-  s10_terms: boolean; s10_privacy: boolean; s10_marketing: boolean; s10_dataUsage: boolean;
 }
 
 const INIT: FormState = {
@@ -64,17 +77,18 @@ const INIT: FormState = {
   s1_foundingYear: '', s1_phone: '', s1_address: '',
   s2_name: '', s2_title: '', s2_email: '', s2_phone: '',
   s3_industry: '', s3_industryDetail: '', s3_employees: '', s3_revenue: '', s3_largeAssets: '',
-  s4_subjectRange: '', s4_general: [], s4_uniqueId: [], s4_sensitive: [],
+  s4_subjectRange: '', s4_general: [], s4_generalOther: '',
+  s4_uniqueId: [], s4_sensitive: [],
   s4_credit: [], s4_location: [], s4_methods: [], s4_purposes: [],
-  s5_delegation: '', s5_delegatees: [], s5_contract: '', s5_provision: '',
-  s5_provisionPurpose: '', s5_overseas: '', s5_overseasCountry: '',
+  s5_delegation: '', s5_delegatees: [],
+  s5_contractPerType: {},
+  s5_provision: '', s5_provisionPurpose: '', s5_overseas: '', s5_overseasCountry: '',
   s6_channels: [], s6_websiteUrl: '', s6_appName: '',
   s6_cctv: '', s6_cctvLoc: [], s6_cctvSignage: '', s6_system: '',
   s7_policy: '', s7_policyUrl: '', s7_cpo: '', s7_cpoTitle: '',
   s7_internalPlan: '', s7_encryption: '', s7_accessLog: '',
   s8_marketing: '', s8_channels: [], s8_consent: '',
   s9_plans: [], s9_employees: '', s9_revenue: '', s9_subjectScale: '', s9_newBiz: '',
-  s10_terms: false, s10_privacy: false, s10_marketing: false, s10_dataUsage: false,
 };
 
 const STORAGE_KEY = 'pipai_mypage_form';
@@ -113,7 +127,6 @@ function isStepValid(step: number, f: FormState): boolean {
     case 6: return !!(f.s7_policy);
     case 7: return !!(f.s8_marketing);
     case 8: return true;
-    case 9: return f.s10_terms && f.s10_privacy;
     default: return false;
   }
 }
@@ -154,6 +167,46 @@ function LlmExcl() {
 
 function Req() {
   return <span style={{ color: 'var(--gok-red)', marginLeft: 2 }}>*</span>;
+}
+
+function SummaryField({ label, value }: { label: string; value: string | string[] | null | undefined }) {
+  if (!value || (Array.isArray(value) && value.length === 0)) return null;
+  const display = Array.isArray(value) ? value.join(', ') : value;
+  return (
+    <div style={{ display: 'flex', gap: 12, padding: '5px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <span style={{ fontSize: 12, color: 'var(--fg-3)', minWidth: 136, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>{display}</span>
+    </div>
+  );
+}
+
+function SummaryCard({ title, children, stepIdx, onEdit, hasData }: {
+  title: string;
+  children: React.ReactNode;
+  stepIdx: number;
+  onEdit: (step: number) => void;
+  hasData: boolean;
+}) {
+  return (
+    <div style={{
+      background: 'white', border: '1px solid var(--border-subtle)',
+      borderRadius: 12, padding: '16px 20px', marginBottom: 12,
+      opacity: hasData ? 1 : 0.6,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasData ? 12 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)' }}>{title}</span>
+          {!hasData && <span style={{ fontSize: 11, color: 'var(--fg-3)', fontWeight: 400 }}>미입력</span>}
+        </div>
+        <button onClick={() => onEdit(stepIdx)} style={{
+          fontSize: 12, color: 'var(--gok-blue)', background: 'var(--bg-tint-blue)',
+          border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontWeight: 600,
+          fontFamily: 'var(--font-body)',
+        }}>편집</button>
+      </div>
+      {hasData && <div style={{ display: 'flex', flexDirection: 'column' }}>{children}</div>}
+    </div>
+  );
 }
 
 const labelStyle: React.CSSProperties = {
@@ -197,10 +250,10 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
   const [error, setError] = useState('');
+  const [viewMode, setViewMode] = useState<'form' | 'summary'>('form');
 
   const set = (patch: Partial<FormState>) => setForm(prev => ({ ...prev, ...patch }));
 
-  // 마운트 후 localStorage에서 복원 (hydration mismatch 방지)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
@@ -242,6 +295,9 @@ export default function MyPage() {
     setError('');
     try {
       const allDataItems = [...form.s4_general, ...form.s4_uniqueId, ...form.s4_credit, ...form.s4_location];
+      if (form.s4_general.includes('기타') && form.s4_generalOther) {
+        allDataItems.push(form.s4_generalOther);
+      }
       await upsertProfile(token, {
         businessType: form.s3_industry,
         employeeCount: parseInt(form.s3_employees) || null,
@@ -262,14 +318,20 @@ export default function MyPage() {
   const handleNext = async () => {
     if (!isStepValid(step, form)) return;
     if (step >= 2) await saveToBackend();
-    if (step < 9) setStep(s => s + 1);
+    if (step < SECTIONS.length - 1) setStep(s => s + 1);
   };
 
   const handlePrev = () => setStep(s => Math.max(0, s - 1));
 
   const handleFinish = async () => {
-    if (!isStepValid(9, form)) return;
+    if (!isStepValid(SECTIONS.length - 1, form)) return;
     await saveToBackend();
+    setViewMode('summary');
+  };
+
+  const handleEditFromSummary = (targetStep: number) => {
+    setStep(targetStep);
+    setViewMode('form');
   };
 
   const valid = isStepValid(step, form);
@@ -437,8 +499,9 @@ export default function MyPage() {
 
       <div style={fieldWrap}>
         <label style={labelStyle}>수집 정보 유형<Req /> <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--fg-3)' }}>(해당 항목 모두 선택)</span></label>
+
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', marginBottom: 6 }}>일반 개인정보</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 6 }}>
           {['성명', '연락처(전화번호)', '주소', '이메일', '생년월일', '성별', '직업·소속'].map(v => (
             <label key={v} style={checkLabel}>
               <input type="checkbox" checked={form.s4_general.includes(v)}
@@ -446,7 +509,23 @@ export default function MyPage() {
               {v}
             </label>
           ))}
+          <label style={checkLabel}>
+            <input type="checkbox" checked={form.s4_general.includes('기타')}
+              onChange={() => set({ s4_general: toggle(form.s4_general, '기타') })} />
+            기타
+          </label>
         </div>
+        {form.s4_general.includes('기타') && (
+          <div style={{ marginBottom: 12 }}>
+            <input
+              style={{ ...inputStyle, fontSize: 13 }}
+              value={form.s4_generalOther}
+              onChange={e => set({ s4_generalOther: e.target.value })}
+              placeholder="직접 입력 (예: 직원번호, 차량번호판 등)"
+            />
+          </div>
+        )}
+
         <div style={{ fontSize: 12, fontWeight: 600, color: '#B45309', marginBottom: 6 }}>고유식별정보 ★ (제24조의2 적용)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
           {['주민등록번호', '운전면허번호', '외국인등록번호', '여권번호'].map(v => (
@@ -457,6 +536,7 @@ export default function MyPage() {
             </label>
           ))}
         </div>
+
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gok-red)', marginBottom: 6 }}>민감정보 ★ (제23조 적용)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
           {['사상·신념', '노조·정당 가입 여부', '정치적 견해', '건강·의료정보', '성생활 정보', '유전정보', '범죄경력 정보', '인종·민족 정보'].map(v => (
@@ -467,6 +547,7 @@ export default function MyPage() {
             </label>
           ))}
         </div>
+
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', marginBottom: 6 }}>신용정보 (신용정보법 적용)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
           {['신용카드 정보', '계좌번호', '신용평점'].map(v => (
@@ -477,6 +558,7 @@ export default function MyPage() {
             </label>
           ))}
         </div>
+
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', marginBottom: 6 }}>위치·영상정보</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
           {['위치정보(GPS)', 'CCTV 영상 ★(제25조)', '차량번호'].map(v => (
@@ -538,33 +620,52 @@ export default function MyPage() {
       {form.s5_delegation === 'yes' && (
         <div style={subIndent}>
           <div style={fieldWrap}>
-            <label style={labelStyle}>수탁자 유형</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-              {['배송업체', '결제대행 (PG사)', '고객센터·CS', '마케팅 대행', '클라우드 서비스 (AWS, GCP 등)', '시스템 개발·운영 외주', '데이터 분석', '기타'].map(v => (
-                <label key={v} style={checkLabel}>
-                  <input type="checkbox" checked={form.s5_delegatees.includes(v)}
-                    onChange={() => set({ s5_delegatees: toggle(form.s5_delegatees, v) })} />
-                  {v}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div style={{ ...fieldWrap, marginBottom: 0 }}>
-            <label style={labelStyle}>위탁계약 체결 여부</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {[
-                { v: 'written', l: '서면 계약 체결함' },
-                { v: 'verbal', l: '구두 계약만 있음', warn: true },
-                { v: 'none', l: '계약 없음', warn: true },
-                { v: 'unknown', l: '모르겠음' },
-              ].map(({ v, l, warn }) => (
-                <label key={v} style={radioLabel}>
-                  <input type="radio" name="delegationContract" value={v}
-                    checked={form.s5_contract === v}
-                    onChange={() => set({ s5_contract: v })} />
-                  {l}
-                  {warn && form.s5_contract === v && <WarnBadge text="위반 가능성" />}
-                </label>
+            <label style={labelStyle}>수탁자 유형 및 계약 체결 여부</label>
+            <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 10, lineHeight: 1.5 }}>
+              수탁자를 선택하면 해당 수탁자와의 계약 상태를 설정할 수 있습니다.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {DELEGATEE_TYPES.map(v => (
+                <div key={v}>
+                  <label style={checkLabel}>
+                    <input type="checkbox" checked={form.s5_delegatees.includes(v)}
+                      onChange={() => {
+                        const next = toggle(form.s5_delegatees, v);
+                        set({ s5_delegatees: next });
+                        if (!next.includes(v)) {
+                          const cp = { ...form.s5_contractPerType };
+                          delete cp[v];
+                          set({ s5_contractPerType: cp });
+                        }
+                      }} />
+                    <span style={{ fontWeight: form.s5_delegatees.includes(v) ? 600 : 400 }}>{v}</span>
+                  </label>
+                  {form.s5_delegatees.includes(v) && (
+                    <div style={{
+                      marginLeft: 24, marginTop: 6, marginBottom: 4,
+                      padding: '10px 12px',
+                      background: '#FAFAFA',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 8,
+                      display: 'flex', flexWrap: 'wrap' as const, gap: '6px 16px',
+                    }}>
+                      <span style={{ fontSize: 11, color: 'var(--fg-3)', width: '100%', marginBottom: 4, fontWeight: 600 }}>계약 체결 현황</span>
+                      {CONTRACT_OPTIONS.map(({ v: cv, l: cl, warn }) => (
+                        <label key={cv} style={{ ...checkLabel, fontSize: 13 }}>
+                          <input
+                            type="radio"
+                            name={`contract_${v}`}
+                            value={cv}
+                            checked={form.s5_contractPerType[v] === cv}
+                            onChange={() => set({ s5_contractPerType: { ...form.s5_contractPerType, [v]: cv } })}
+                          />
+                          {cl}
+                          {warn && form.s5_contractPerType[v] === cv && <WarnBadge text="위반 가능성" />}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -943,128 +1044,210 @@ export default function MyPage() {
     </>
   );
 
-  // ── 섹션 10: 약관 동의 ──────────────────────────────────────────────────────
-  const renderS10 = () => (
-    <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <label style={{ ...checkLabel, fontSize: 15, fontWeight: 600 }}>
-          <input type="checkbox" checked={form.s10_terms}
-            onChange={e => set({ s10_terms: e.target.checked })} />
-          [필수] 서비스 이용약관에 동의합니다
-        </label>
-        <label style={{ ...checkLabel, fontSize: 15, fontWeight: 600 }}>
-          <input type="checkbox" checked={form.s10_privacy}
-            onChange={e => set({ s10_privacy: e.target.checked })} />
-          [필수] 개인정보 수집·이용에 동의합니다
-        </label>
-        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
-        <label style={{ ...checkLabel, color: 'var(--fg-3)' }}>
-          <input type="checkbox" checked={form.s10_marketing}
-            onChange={e => set({ s10_marketing: e.target.checked })} />
-          [선택] 마케팅 정보 수신에 동의합니다
-        </label>
-        <label style={{ ...checkLabel, color: 'var(--fg-3)' }}>
-          <input type="checkbox" checked={form.s10_dataUsage}
-            onChange={e => set({ s10_dataUsage: e.target.checked })} />
-          [선택] 대화 내용 저장 및 서비스 개선 활용에 동의합니다
-        </label>
+  // ── 요약 뷰 ──────────────────────────────────────────────────────────────────
+  const renderSummary = () => {
+    const contractSummary = form.s5_delegatees.map(d => {
+      const state = form.s5_contractPerType[d];
+      const label = CONTRACT_OPTIONS.find(o => o.v === state)?.l ?? '미설정';
+      return `${d}: ${label}`;
+    });
+
+    const allDataItems = [
+      ...form.s4_general.filter(x => x !== '기타'),
+      ...(form.s4_general.includes('기타') && form.s4_generalOther ? [form.s4_generalOther] : []),
+      ...form.s4_uniqueId,
+      ...form.s4_sensitive,
+      ...form.s4_credit,
+      ...form.s4_location,
+    ];
+
+    return (
+      <div>
+        <SummaryCard title="기본정보" stepIdx={0} onEdit={handleEditFromSummary} hasData={!!form.s1_companyName}>
+          <SummaryField label="회사명" value={form.s1_companyName} />
+          <SummaryField label="법인구분" value={form.s1_entityType} />
+          <SummaryField label="설립연도" value={form.s1_foundingYear} />
+          <SummaryField label="소재지" value={form.s1_address} />
+        </SummaryCard>
+
+        <SummaryCard title="담당자 정보" stepIdx={1} onEdit={handleEditFromSummary} hasData={!!form.s2_name}>
+          <SummaryField label="담당자명" value={form.s2_name} />
+          <SummaryField label="직함" value={form.s2_title} />
+          <SummaryField label="이메일" value={form.s2_email} />
+        </SummaryCard>
+
+        <SummaryCard title="사업자 규모" stepIdx={2} onEdit={handleEditFromSummary} hasData={!!form.s3_industry}>
+          <SummaryField label="업종" value={form.s3_industryDetail || form.s3_industry} />
+          <SummaryField label="직원 수" value={form.s3_employees ? `${form.s3_employees}명 (${getCompanySize(form.s3_employees)})` : null} />
+          <SummaryField label="매출액" value={form.s3_revenue} />
+        </SummaryCard>
+
+        <SummaryCard title="개인정보 처리 현황" stepIdx={3} onEdit={handleEditFromSummary} hasData={!!form.s4_subjectRange}>
+          <SummaryField label="정보주체 규모" value={form.s4_subjectRange} />
+          <SummaryField label="수집 정보 유형" value={allDataItems.length > 0 ? allDataItems : null} />
+          <SummaryField label="수집 방법" value={form.s4_methods} />
+          <SummaryField label="이용 목적" value={form.s4_purposes} />
+        </SummaryCard>
+
+        <SummaryCard title="처리 위탁·제공 현황" stepIdx={4} onEdit={handleEditFromSummary} hasData={!!form.s5_delegation}>
+          <SummaryField label="위탁 여부"
+            value={form.s5_delegation === 'yes' ? '위탁함' : form.s5_delegation === 'no' ? '위탁 안 함' : form.s5_delegation === 'unknown' ? '잘 모르겠음' : null} />
+          {contractSummary.length > 0 && <SummaryField label="수탁자별 계약 현황" value={contractSummary} />}
+          <SummaryField label="제3자 제공"
+            value={form.s5_provision === 'yes' ? `제공함${form.s5_provisionPurpose ? ` — ${form.s5_provisionPurpose}` : ''}` : form.s5_provision === 'no' ? '제공 안 함' : form.s5_provision === 'unknown' ? '잘 모르겠음' : null} />
+          <SummaryField label="국외 이전"
+            value={form.s5_overseas === 'yes' ? `이전됨${form.s5_overseasCountry ? ` (${form.s5_overseasCountry})` : ''}` : form.s5_overseas === 'no' ? '이전 안 됨' : form.s5_overseas === 'unknown' ? '잘 모르겠음' : null} />
+        </SummaryCard>
+
+        <SummaryCard title="처리 환경" stepIdx={5} onEdit={handleEditFromSummary} hasData={form.s6_channels.length > 0}>
+          <SummaryField label="운영 채널" value={form.s6_channels} />
+          <SummaryField label="CCTV"
+            value={form.s6_cctv === 'yes' ? `운영함${form.s6_cctvLoc.length > 0 ? ` (${form.s6_cctvLoc.join(', ')})` : ''}` : form.s6_cctv === 'no' ? '운영 안 함' : null} />
+          <SummaryField label="처리시스템" value={form.s6_system} />
+        </SummaryCard>
+
+        <SummaryCard title="안전조치 현황" stepIdx={6} onEdit={handleEditFromSummary} hasData={!!form.s7_policy}>
+          <SummaryField label="처리방침 게시"
+            value={form.s7_policy === 'yes' ? '게시함' : form.s7_policy === 'no' ? '게시 안 함' : form.s7_policy === 'unknown' ? '모르겠음' : null} />
+          <SummaryField label="CPO 지정"
+            value={form.s7_cpo === 'yes' ? `지정함${form.s7_cpoTitle ? ` (${form.s7_cpoTitle})` : ''}` : form.s7_cpo === 'no' ? '지정 안 함' : form.s7_cpo === 'unknown' ? '모르겠음' : null} />
+          <SummaryField label="내부관리계획"
+            value={form.s7_internalPlan === 'yes' ? '수립함' : form.s7_internalPlan === 'no' ? '수립 안 함' : form.s7_internalPlan === 'unknown' ? '모르겠음' : null} />
+          <SummaryField label="암호화" value={form.s7_encryption} />
+        </SummaryCard>
+
+        <SummaryCard title="마케팅·광고 활용" stepIdx={7} onEdit={handleEditFromSummary} hasData={!!form.s8_marketing}>
+          <SummaryField label="마케팅 발송"
+            value={form.s8_marketing === 'yes' ? '발송함' : form.s8_marketing === 'no' ? '발송 안 함' : null} />
+          {form.s8_marketing === 'yes' && <SummaryField label="발송 채널" value={form.s8_channels} />}
+        </SummaryCard>
+
+        <SummaryCard title="성장 시나리오" stepIdx={8} onEdit={handleEditFromSummary} hasData={form.s9_plans.length > 0}>
+          <SummaryField label="성장 계획" value={form.s9_plans.map(v => ({
+            hire: '직원 채용 예정', revenue: '매출 성장 예정', subjects: '정보주체 수 증가 예정',
+            newbiz: '신규 사업 진출 예정', overseas: '해외 진출 예정', ai: 'AI·신기술 도입 예정', none: '변화 없음',
+          }[v] ?? v))} />
+        </SummaryCard>
       </div>
-    </>
-  );
+    );
+  };
 
   // ── 섹션 렌더 맵 ─────────────────────────────────────────────────────────────
   const sectionRenderers = [
     renderS1, renderS2, renderS3, renderS4, renderS5,
-    renderS6, renderS7, renderS8, renderS9, renderS10,
+    renderS6, renderS7, renderS8, renderS9,
   ];
 
   const progress = ((step + 1) / SECTIONS.length) * 100;
+  const lastStep = SECTIONS.length - 1;
 
   return (
     <div style={{ padding: '32px 32px 40px', maxWidth: 720, overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
       {/* 헤더 */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>마이페이지</div>
-        <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 3 }}>
-          기업 프로필을 정확히 등록하면 AI 진단 정확도가 높아져요.
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>마이페이지</div>
+          <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 3 }}>
+            기업 프로필을 정확히 등록하면 AI 진단 정확도가 높아져요.
+          </div>
         </div>
+        <button
+          onClick={() => setViewMode(viewMode === 'summary' ? 'form' : 'summary')}
+          style={{
+            padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: '1px solid var(--border-default)',
+            background: viewMode === 'summary' ? 'var(--gok-blue)' : 'white',
+            color: viewMode === 'summary' ? 'white' : 'var(--fg-2)',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+            whiteSpace: 'nowrap' as const,
+          }}
+        >
+          {viewMode === 'summary' ? '편집 모드' : '전체 보기'}
+        </button>
       </div>
 
-      {/* 프로그레스 바 */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-2)' }}>
-            {SECTIONS[step]}
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{step + 1} / {SECTIONS.length}</span>
-        </div>
-        <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--gok-blue)', borderRadius: 2, transition: 'width 300ms ease' }} />
-        </div>
-        {/* 섹션 탭 */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
-          {SECTIONS.map((_s, i) => (
-            <button key={i} onClick={() => setStep(i)} style={{
-              padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: i === step ? 'var(--gok-blue)' : i < step ? 'var(--bg-tint-blue)' : 'var(--bg-canvas)',
-              color: i === step ? 'white' : i < step ? 'var(--gok-blue)' : 'var(--fg-3)',
-            }}>{i + 1}</button>
-          ))}
-        </div>
-      </div>
+      {viewMode === 'summary' ? (
+        renderSummary()
+      ) : (
+        <>
+          {/* 프로그레스 바 */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-2)' }}>
+                {SECTIONS[step]}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{step + 1} / {SECTIONS.length}</span>
+            </div>
+            <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--gok-blue)', borderRadius: 2, transition: 'width 300ms ease' }} />
+            </div>
+            {/* 섹션 탭 */}
+            <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
+              {SECTIONS.map((_s, i) => (
+                <button key={i} onClick={() => setStep(i)} style={{
+                  padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
+                  background: i === step ? 'var(--gok-blue)' : i < step ? 'var(--bg-tint-blue)' : 'var(--bg-canvas)',
+                  color: i === step ? 'white' : i < step ? 'var(--gok-blue)' : 'var(--fg-3)',
+                  fontFamily: 'var(--font-body)',
+                }}>{i + 1}</button>
+              ))}
+            </div>
+          </div>
 
-      {/* 섹션 콘텐츠 */}
-      <div style={{
-        background: 'white', border: '1px solid var(--border-subtle)',
-        borderRadius: 14, padding: '24px 24px', marginBottom: 20,
-      }}>
-        {sectionRenderers[step]?.()}
-      </div>
-
-      {/* 에러 / 저장 메시지 */}
-      {error && (
-        <div style={{ background: '#FEF2F2', color: 'var(--gok-red)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
-          {error}
-        </div>
-      )}
-      {savedMsg && (
-        <div style={{ background: '#F0FDF4', color: '#15803D', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
-          {savedMsg}
-        </div>
-      )}
-
-      {/* 네비게이션 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={handlePrev} disabled={step === 0} style={{
-          padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-          border: '1px solid var(--border-default)', background: 'white',
-          color: step === 0 ? 'var(--fg-3)' : 'var(--fg-1)',
-          cursor: step === 0 ? 'default' : 'pointer',
-          fontFamily: 'var(--font-body)',
-        }}>이전</button>
-
-        {step < 9 ? (
-          <button onClick={handleNext} disabled={!valid || saving} style={{
-            padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-            border: 'none', background: valid ? 'var(--gok-blue)' : 'var(--border-default)',
-            color: valid ? 'white' : 'var(--fg-3)',
-            cursor: valid && !saving ? 'pointer' : 'default',
-            fontFamily: 'var(--font-body)',
+          {/* 섹션 콘텐츠 */}
+          <div style={{
+            background: 'white', border: '1px solid var(--border-subtle)',
+            borderRadius: 14, padding: '24px 24px', marginBottom: 20,
           }}>
-            {saving ? '저장 중...' : '다음'}
-          </button>
-        ) : (
-          <button onClick={handleFinish} disabled={!valid || saving} style={{
-            padding: '10px 28px', borderRadius: 10, fontSize: 14, fontWeight: 700,
-            border: 'none', background: valid ? 'var(--gok-blue)' : 'var(--border-default)',
-            color: valid ? 'white' : 'var(--fg-3)',
-            cursor: valid && !saving ? 'pointer' : 'default',
-            fontFamily: 'var(--font-body)',
-          }}>
-            {saving ? '저장 중...' : '저장 완료'}
-          </button>
-        )}
-      </div>
+            {sectionRenderers[step]?.()}
+          </div>
+
+          {/* 에러 / 저장 메시지 */}
+          {error && (
+            <div style={{ background: '#FEF2F2', color: 'var(--gok-red)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
+              {error}
+            </div>
+          )}
+          {savedMsg && (
+            <div style={{ background: '#F0FDF4', color: '#15803D', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
+              {savedMsg}
+            </div>
+          )}
+
+          {/* 네비게이션 버튼 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={handlePrev} disabled={step === 0} style={{
+              padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+              border: '1px solid var(--border-default)', background: 'white',
+              color: step === 0 ? 'var(--fg-3)' : 'var(--fg-1)',
+              cursor: step === 0 ? 'default' : 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}>이전</button>
+
+            {step < lastStep ? (
+              <button onClick={handleNext} disabled={!valid || saving} style={{
+                padding: '10px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                border: 'none', background: valid ? 'var(--gok-blue)' : 'var(--border-default)',
+                color: valid ? 'white' : 'var(--fg-3)',
+                cursor: valid && !saving ? 'pointer' : 'default',
+                fontFamily: 'var(--font-body)',
+              }}>
+                {saving ? '저장 중...' : '다음'}
+              </button>
+            ) : (
+              <button onClick={handleFinish} disabled={!valid || saving} style={{
+                padding: '10px 28px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                border: 'none', background: valid ? 'var(--gok-blue)' : 'var(--border-default)',
+                color: valid ? 'white' : 'var(--fg-3)',
+                cursor: valid && !saving ? 'pointer' : 'default',
+                fontFamily: 'var(--font-body)',
+              }}>
+                {saving ? '저장 중...' : '저장 완료'}
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
