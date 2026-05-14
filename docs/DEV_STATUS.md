@@ -1,7 +1,7 @@
 # PIPAi 개발 현황 문서
 
-> 작성일: 2025-05-10 | 최종 업데이트: 2025-05-11 | 마감: 2025-05-29 (18일 남음)  
-> 전체 완성도: **약 99%** (P0·P1·P2 완료 + QA 버그 수정 + E2E 테스트 완료)
+> 작성일: 2025-05-10 | 최종 업데이트: 2026-05-14 | 마감: 2025-05-29 (15일 남음)  
+> 전체 완성도: **약 99.5%** (P0·P1·P2 완료 + QA 버그 수정 + E2E 테스트 + LLM 컨텍스트 개선)
 
 ---
 
@@ -43,6 +43,21 @@
 | 16 | Playwright E2E 테스트 18개 구축 (모킹 기반, 백엔드 불필요) | `frontend/e2e/` | ✅ 완료 |
 | 17 | E2E 테스트 가이드 문서 작성 | `docs/E2E_TEST.md` | ✅ 완료 |
 
+### 🔵 P4 — LLM 컨텍스트 개선 + QA 버그 수정 ✅ **완료 (2026-05-14)**
+
+| 순위 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| 18 | LLM 시스템 프롬프트에 마이페이지 전체 6개 필드 반영 | `rag/LlmService.java` | ✅ 완료 |
+| 19 | 현재 대화 이력(최대 20개) LLM 컨텍스트에 포함 — 문맥 유지 | `service/ChatService.java`, `rag/LlmService.java` | ✅ 완료 |
+| 20 | 히든 메모: 대화 완료 후 AI가 자동 요약 → `hidden_memo` 누적 저장 | `CompanyProfile.java`, `ProfileService.java`, `ChatService.java` | ✅ 완료 |
+| 21 | 히든 메모 시스템 프롬프트 포함 — 다른 대화창 내용 간접 참조 | `rag/LlmService.java` | ✅ 완료 |
+| 22 | LLM 강제 답변 형식 (리스크 수준·근거 조문·실무 권장사항) | `rag/LlmService.java` | ✅ 완료 |
+| 23 | Flyway V7: `company_profiles.hidden_memo` 컬럼 추가 | `V7__add_hidden_memo.sql` | ✅ 완료 |
+| 24 | 마크다운 렌더링 개선: 스트리밍 경로 `mdToHtml()` 5개 규칙 확장 | `chat/page.tsx` | ✅ 완료 |
+| 25 | 마크다운 렌더링 개선: DB 로드 경로에 `mdToHtml()` 적용 | `chat/page.tsx` | ✅ 완료 |
+| 26 | 사이드바 대화 미리보기 `**bold**` 마크다운 제거 (`stripMd`) | `Sidebar.tsx` | ✅ 완료 |
+| 27 | 문의글 페이지 기업 정보 자동 채우기 (프로필 API 병렬 호출) | `inquiry/page.tsx` | ✅ 완료 |
+
 ### 🟡 P2 — 있으면 좋지만 없어도 데모 가능 ✅ **완료 (2025-05-11)**
 
 | 순위 | 작업 | 파일 | 상태 |
@@ -59,7 +74,9 @@
 [완료] 5/10~5/11  → P1 전체 완료 + 검증·버그 수정 (예정보다 7일 단축)
 [완료] 5/11       → P2: 리스크 자동 생성 + 성장 시나리오
 [완료] 5/11       → QA 버그 수정 3건 + E2E 테스트 18개 + 문서화
-[진행 예정] 5/12~5/20  → 배포 안정화 (ECS Fargate 재배포 + 환경변수 확인)
+[완료] 5/14       → LLM 컨텍스트 개선 (대화 이력·히든 메모·6개 프로필 필드·답변 형식)
+[완료] 5/14       → QA 버그 수정 5건 (마크다운 렌더링 4건 + 문의글 기업정보 자동 채우기)
+[진행 예정] 5/15~5/20  → 배포 안정화 (ECS Fargate 재배포 — V7 마이그레이션 포함 + 환경변수 확인)
 [진행 예정] 5/21~5/29  → 최종 QA (프로덕션) + 발표 자료 준비
 ```
 
@@ -81,13 +98,13 @@
 | 영역 | 완성도 | 비고 |
 |------|--------|------|
 | 백엔드 API (Controller) | 97% | `POST /conversations/{id}/messages` SSE 완성 |
-| 백엔드 Service | 97% | InquiryService 완성, 리스크 자동 생성만 P2 잔여 |
-| RAG 파이프라인 | 95% | LLM 파싱·저장·문의글 생성 모두 완성 |
+| 백엔드 Service | 99% | InquiryService·ChatService·ProfileService 완성 (히든 메모 포함) |
+| RAG 파이프라인 | 99% | 대화 이력·6개 프로필 필드·히든 메모·답변 형식 시스템 프롬프트 완성 |
 | 외부 API 연동 | 90% | 파싱 완성, LawDataSyncService 변경이력 감지 미완 |
 | 벡터 DB | 90% | 초기 데이터 자동 로드 완성 (DataInitializer) |
-| 프론트엔드 페이지 | 100% | SSE 파싱·리스크 패널 실시간 업데이트 완료 |
+| 프론트엔드 페이지 | 100% | 마크다운 렌더링·문의글 기업정보 자동 채우기 완료 |
 | 프론트엔드 API 함수 | 100% | 전 엔드포인트 연동 완성 |
-| DB 마이그레이션 | 100% | V1~V6 완성 |
+| DB 마이그레이션 | 100% | V1~V7 완성 (V7: hidden_memo 컬럼) |
 | 초기 데이터 | 90% | 법령·사례 자동 로드, 기본 리스크 체크리스트만 P2 잔여 |
 
 ---
@@ -119,19 +136,20 @@
 |--------|------|------|
 | `AuthService` | ✅ 완성 | — |
 | `ProfileService` | ✅ 완성 | — |
-| `ChatService` | ✅ 완성 | SSE 스트리밍 + AI 응답 DB 저장 완성 |
+| `ChatService` | ✅ 완성 | SSE 스트리밍 + 대화 이력(최대 20개) LLM 전달 + 완료 후 히든 메모 비동기 저장 |
 | `DashboardService` | ✅ 완성 | — |
 | `InquiryService` | ✅ 완성 | `generate()` — 대화 이력 → LLM → InquiryDraft 저장. 빈 대화·null 응답 예외 처리 포함 |
+| `ProfileService` | ✅ 완성 | `appendHiddenMemo()` — 날짜 접두사 붙여 누적 저장 |
 | `LawDataSyncService` | ⚠️ 부분 | 스케줄러 구조 완성, 변경이력 감지 미구현 (P2 범위 밖) |
 
 ### 2-3. RAG 파이프라인
 
 | 컴포넌트 | 상태 | 비고 |
 |---------|------|------|
-| `RagPipeline` | ✅ 완성 | 전체 흐름 구현 완료 |
+| `RagPipeline` | ✅ 완성 | `generateAnswer()` — 대화 이력 파라미터 추가 |
 | `EmbeddingService` | ✅ 완성 | OpenAI text-embedding-3-small 연동 완료 |
 | `VectorSearchService` | ✅ 완성 | pgvector 쿼리 완료 |
-| `LlmService` | ✅ 완성 | `extractContent()` Jackson JSON 파싱, `completeText()` JsonNode 직접 역직렬화 |
+| `LlmService` | ✅ 완성 | 시스템 프롬프트 전면 개선(6개 프로필 필드·히든 메모·답변 형식), `streamAnswer()` 대화 이력 포함 |
 
 ### 2-4. 외부 API 연동
 
@@ -177,10 +195,10 @@
 |--------|------|------|------|
 | 로그인 | `/login` | ✅ 완성 | — |
 | 회원가입 | `/signup` | ✅ 완성 | — |
-| 채팅 | `/chat` | ✅ 완성 | SSE 파싱 버그 수정, `checklist_update` → 사이드바 실시간 반영 |
+| 채팅 | `/chat` | ✅ 완성 | 마크다운 렌더링 개선(`mdToHtml` 스트리밍·DB로드 양방향), `checklist_update` → 사이드바 실시간 반영 |
 | 대시보드 | `/dashboard` | ✅ 완성 | 성장 시나리오 백엔드 연동 완료 |
-| 마이페이지 | `/mypage` | ✅ 완성 | 10단계 폼 완성 |
-| 문의글 | `/inquiry` | ✅ 완성 | InquiryService 완성으로 정상 동작 |
+| 마이페이지 | `/mypage` | ✅ 완성 | 10단계 폼 완성, 전체 6개 필드 LLM 컨텍스트 반영 |
+| 문의글 | `/inquiry` | ✅ 완성 | 프로필 API 병렬 호출로 기업정보(업종·직원수·수집항목) 자동 채우기 |
 
 ### 3-2. 컴포넌트
 
@@ -190,7 +208,7 @@
 | `Composer` | ✅ 완성 | 메시지 입력 |
 | `Dashboard` | ✅ 완성 | 요약 카드 + 체크리스트 |
 | `InquiryGen` | ✅ 완성 | 문의글 조회·편집 UI |
-| `Sidebar` | ✅ 완성 | 최근 대화 목록, 실제 프로필·리스크 표시, 로그아웃 |
+| `Sidebar` | ✅ 완성 | 최근 대화 목록, `stripMd()`로 마크다운 제거, 실제 프로필·리스크 표시, 로그아웃 |
 | `Topbar` | ✅ 완성 | 상단 바 |
 | `LawCard` | ✅ 완성 | 법령 조항 카드 |
 | `CaseCard` | ✅ 완성 | 사례 카드 |
@@ -230,6 +248,7 @@
 | `V4__create_risk_checklist_items.sql` | risk_checklist_items 테이블 | ✅ 완성 |
 | `V5__create_inquiry_drafts.sql` | inquiry_drafts 테이블 | ✅ 완성 |
 | `V6__create_vector_tables.sql` | law_embeddings, case_embeddings 테이블 | ✅ 완성 |
+| `V7__add_hidden_memo.sql` | company_profiles.hidden_memo 컬럼 추가 (2026-05-14) | ✅ 완성 — 프로덕션 미적용 (ECS 재배포 시 자동 실행 예정) |
 
 ### 4-2. 초기 데이터
 
