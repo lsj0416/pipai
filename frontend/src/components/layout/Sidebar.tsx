@@ -13,6 +13,8 @@ interface SidebarProps {
   user: UserData;
 }
 
+const stripMd = (text: string) => text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\n/g, ' ');
+
 const NAV_ITEMS: { id: NavId; label: string; path: string }[] = [
   { id: 'chat',    label: '대화',            path: '/chat' },
   { id: 'dash',    label: '리스크 대시보드', path: '/dashboard' },
@@ -171,7 +173,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
                 </div>
                 {conv.lastMessage && (
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                    {conv.lastMessage}
+                    {stripMd(conv.lastMessage)}
                   </div>
                 )}
               </button>
