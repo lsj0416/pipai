@@ -11,7 +11,10 @@ import { createConversation, sendMessage, getMessages } from '@/lib/api/conversa
 function mdToHtml(html: string): string {
   return html
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(<br\/>|\n)- /g, '$1• ');
+    .replace(/([^>])(<strong>)/g, '$1<br/>$2')
+    .replace(/<\/strong>(\s*)- /g, '</strong>$1<br/>• ')
+    .replace(/(<br\/>|\n)- /g, '$1• ')
+    .replace(/([.!?])\s*- /g, '$1<br/>• ');
 }
 
 const WELCOME: ChatMessage = {
