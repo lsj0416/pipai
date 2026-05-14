@@ -45,6 +45,10 @@ public class CompanyProfile {
     @Column(columnDefinition = "text")
     private String sensitiveDataTypes;
 
+    // AI 전용 누적 상담 요약 메모 (사용자에게 비노출)
+    @Column(columnDefinition = "text")
+    private String hiddenMemo;
+
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updatedAt;
@@ -63,5 +67,9 @@ public class CompanyProfile {
         this.personalDataItems = personalDataItems;
         this.hasPrivacyPolicy = hasPrivacyPolicy;
         this.sensitiveDataTypes = sensitiveDataTypes;
+    }
+
+    public void appendHiddenMemo(String entry) {
+        this.hiddenMemo = (hiddenMemo == null || hiddenMemo.isBlank()) ? entry : hiddenMemo + "\n" + entry;
     }
 }

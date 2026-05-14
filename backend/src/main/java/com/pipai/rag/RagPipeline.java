@@ -1,6 +1,7 @@
 package com.pipai.rag;
 
 import com.pipai.domain.CompanyProfile;
+import com.pipai.domain.Message;
 import com.pipai.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,13 +24,17 @@ public class RagPipeline {
 
     public record RagResult(Flux<String> stream, List<Map<String, Object>> lawRefs, List<Map<String, Object>> caseRefs) {}
 
-    public RagResult generateAnswer(String userMessage, UUID userId) {
+    public LlmService getLlmService() {
+        return llmService;
+    }
+
+    public RagResult generateAnswer(String userMessage, UUID userId, List<Message> history) {
         CompanyProfile profile = profileRepository.findByUserId(userId).orElse(null);
         float[] queryVector = embeddingService.embed(userMessage);
         List<Map<String, Object>> lawRefs = vectorSearchService.searchLaws(queryVector, 5);
         String businessType = profile != null ? profile.getBusinessType() : null;
         List<Map<String, Object>> caseRefs = vectorSearchService.searchCases(queryVector, businessType, 3);
-        log.debug("RAG 검색 완료 - 법령: {}건, 사례: {}건", lawRefs.size(), caseRefs.size());
-        return new RagResult(llmService.streamAnswer(userMessage, profile, lawRefs, caseRefs), lawRefs, caseRefs);
+        log.debug("RAG 검색 완료 - 법령: {}건, 사례: {}건, 이력: {}건", lawRefs.size(), caseRefs.size(), history.size());
+        return new RagResult(llmService.streamAnswer(userMessage, profile, lawRefs, caseRefs, history), lawRefs, caseRefs);
     }
 }

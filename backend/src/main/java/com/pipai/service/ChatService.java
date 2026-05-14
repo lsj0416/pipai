@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,9 @@ public class ChatService {
     private final RagPipeline ragPipeline;
     private final RiskRepository riskRepository;
     private final ObjectMapper objectMapper;
+    private final ProfileService profileService;
+
+    private static final int MAX_HISTORY = 20;
 
     @Transactional(readOnly = true)
     public List<Conversation> listConversations(UUID userId) {
@@ -63,9 +67,15 @@ public class ChatService {
             throw new SecurityException("접근 권한이 없습니다.");
         }
 
+        // 현재 메시지 저장 전에 이력 조회 (중복 포함 방지)
+        List<Message> history = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        if (history.size() > MAX_HISTORY) {
+            history = history.subList(history.size() - MAX_HISTORY, history.size());
+        }
+
         messageRepository.save(Message.ofUser(conv, userMessage));
 
-        RagPipeline.RagResult ragResult = ragPipeline.generateAnswer(userMessage, userId);
+        RagPipeline.RagResult ragResult = ragPipeline.generateAnswer(userMessage, userId, history);
         String lawRefsJson = buildLawRefsJson(ragResult.lawRefs());
         User user = userRepository.findById(userId).orElse(null);
 
@@ -78,12 +88,23 @@ public class ChatService {
                     String fullResponse = accumulator.toString();
                     if (!fullResponse.isBlank()) {
                         messageRepository.save(Message.ofAssistant(conv, fullResponse, lawRefsJson));
+                        // 대화 완료 시 히든 메모에 한 줄 요약 append (다른 대화창에서도 맥락 참조)
+                        appendHiddenMemoAsync(userId, userMessage, fullResponse);
                     }
                     if (user != null) {
                         pendingChecklistEvents.addAll(buildChecklistEvents(user, ragResult.lawRefs()));
                     }
                 })
                 .concatWith(Flux.defer(() -> Flux.fromIterable(pendingChecklistEvents)));
+    }
+
+    private void appendHiddenMemoAsync(UUID userId, String userMessage, String assistantResponse) {
+        String summaryPrompt = "다음 법률 상담 Q&A를 한 문장으로 요약하세요. 핵심 법적 판단만 포함하세요.\nQ: " + userMessage + "\nA: " + assistantResponse;
+        ragPipeline.getLlmService().completeText(summaryPrompt, "한 문장 요약:")
+                .subscribe(
+                        summary -> profileService.appendHiddenMemo(userId, summary),
+                        e -> log.warn("히든 메모 요약 실패 (userId={}): {}", userId, e.getMessage())
+                );
     }
 
     private String buildLawRefsJson(List<Map<String, Object>> lawRefs) {

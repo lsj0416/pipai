@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
@@ -25,6 +26,12 @@ public class ProfileService {
     public CompanyProfile getProfile(UUID userId) {
         return profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("프로필이 존재하지 않습니다."));
+    }
+
+    @Transactional
+    public void appendHiddenMemo(UUID userId, String summary) {
+        profileRepository.findByUserId(userId).ifPresent(profile ->
+                profile.appendHiddenMemo(LocalDate.now() + ": " + summary));
     }
 
     @Transactional
