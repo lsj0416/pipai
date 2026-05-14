@@ -113,14 +113,16 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat, onResol
             </div>
           )}
           {filteredRows.map((r, i) => (
-            <button key={i} onClick={() => onJumpToChat(r)} style={{
-              display: 'grid', gridTemplateColumns: '2fr 1fr 1.6fr 1fr',
-              gap: 16, padding: '14px 22px', width: '100%', textAlign: 'left', background: 'white',
-              border: 'none', borderBottom: i < filteredRows.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-              fontFamily: 'var(--font-body)', cursor: 'pointer', alignItems: 'center',
-            }}
-            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-subtle)'; }}
-            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'white'; }}
+            <div key={i} onClick={() => onJumpToChat(r)}
+              style={{
+                display: 'grid', gridTemplateColumns: '2fr 1fr 1.6fr 1fr',
+                gap: 16, padding: '14px 22px', width: '100%', textAlign: 'left', background: 'white',
+                borderBottom: i < filteredRows.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                fontFamily: 'var(--font-body)', cursor: 'pointer', alignItems: 'center',
+                boxSizing: 'border-box',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-subtle)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'white'; }}
             >
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>{r.title}</div>
               <div><SeverityPill severity={r.severity} /></div>
@@ -138,7 +140,7 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat, onResol
                   }}>완료 처리</button>
                 )}
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
