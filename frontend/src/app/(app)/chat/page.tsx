@@ -59,7 +59,7 @@ function ChatPageContent() {
                 ? { role: 'user' as const, content: m.content }
                 : {
                     role: 'assistant' as const,
-                    parts: [{ type: 'text' as const, html: m.content.replace(/\n/g, '<br/>') }],
+                    parts: [{ type: 'text' as const, html: mdToHtml(m.content.replace(/\n/g, '<br/>')) }],
                   },
             );
             setMessages(loaded);
