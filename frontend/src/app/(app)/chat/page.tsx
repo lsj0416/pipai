@@ -29,11 +29,21 @@ function ChatPageContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (existingConvId) {
+      conversationIdRef.current = existingConvId;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConvId(existingConvId);
+    }
+  }, [existingConvId]);
+
+  useEffect(() => {
     let cancelled = false;
     const token = localStorage.getItem('accessToken');
     if (!token) { router.push('/login'); return; }
 
     if (existingConvId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessages([WELCOME]);
       getMessages(token, existingConvId)
         .then(res => {
           if (cancelled) return;

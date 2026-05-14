@@ -1,5 +1,6 @@
 package com.pipai.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -21,6 +22,7 @@ public class Conversation {
     @Column(columnDefinition = "uuid", updatable = false)
     private UUID id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -28,6 +30,7 @@ public class Conversation {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<Message> messages = new ArrayList<>();
