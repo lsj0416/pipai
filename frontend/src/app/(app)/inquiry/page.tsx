@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import InquiryGen from '@/components/inquiry/InquiryGen';
 import type { InquiryDraft } from '@/lib/types';
 import { generateInquiry } from '@/lib/api/inquiry';
+import { getProfile } from '@/lib/api/profile';
 
 function InquiryContent() {
   const router = useRouter();
@@ -26,21 +27,25 @@ function InquiryContent() {
      
     setError('');
 
-    generateInquiry(token, conversationId)
-      .then(res => {
-        if (!res.success || !res.data) {
-          setError(res.error?.message ?? '문의글 생성에 실패했어요.');
+    Promise.all([
+      generateInquiry(token, conversationId),
+      getProfile(token),
+    ])
+      .then(([inquiryRes, profileRes]) => {
+        if (!inquiryRes.success || !inquiryRes.data) {
+          setError(inquiryRes.error?.message ?? '문의글 생성에 실패했어요.');
           return;
         }
-        const d = res.data;
-        // 백엔드 응답(subject, content, relatedLaws)을 표시 타입으로 매핑
+        const d = inquiryRes.data;
+        const p = profileRes.success ? profileRes.data : null;
+        const empLabel = p?.employeeCount ? `${p.employeeCount}명` : '';
         setDraft({
           recipient: '개인정보보호위원회 기술지원 컨설팅',
           title: d.subject,
           biz: {
-            industry: '',
-            size: '',
-            collected: '',
+            industry: p?.businessType ?? '',
+            size: empLabel,
+            collected: p?.personalDataItems ?? '',
             method: '',
           },
           body: d.content,
