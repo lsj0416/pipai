@@ -8,6 +8,12 @@ import Composer from '@/components/chat/Composer';
 import type { ChatMessage } from '@/lib/types';
 import { createConversation, sendMessage, getMessages } from '@/lib/api/conversations';
 
+function mdToHtml(html: string): string {
+  return html
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(<br\/>|\n)- /g, '$1• ');
+}
+
 const WELCOME: ChatMessage = {
   role: 'assistant',
   parts: [{
@@ -194,6 +200,17 @@ function ChatPageContent() {
       return true;
     } finally {
       setStreaming(false);
+      // 스트리밍 완료 후 마크다운(**bold**, 목록) 변환
+      setMessages(prev => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last?.role !== 'assistant') return prev;
+        const parts = last.parts.map(p =>
+          p.type === 'text' ? { ...p, html: mdToHtml(p.html) } : p
+        );
+        copy[copy.length - 1] = { ...last, parts };
+        return copy;
+      });
     }
   };
 
