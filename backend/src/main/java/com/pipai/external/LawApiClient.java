@@ -5,8 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -16,48 +18,49 @@ public class LawApiClient {
 
     public record LawChunk(String lawId, String lawName, String articleNumber, String content) {}
 
-    private final WebClient webClient;
+    private final RestTemplate restTemplate;
+    private final String baseUrl;
     private final String apiKey;
 
     public LawApiClient(
             @Value("${law-api.base-url}") String baseUrl,
             @Value("${law-api.key}") String apiKey) {
+        this.baseUrl = baseUrl;
         this.apiKey = apiKey;
-        this.webClient = WebClient.builder().baseUrl(baseUrl).build();
+        this.restTemplate = new RestTemplate();
     }
 
     @Cacheable("lawSearch")
     public List<LawChunk> searchLaws(String query) {
         try {
-            var response = webClient.get()
-                    .uri(u -> u.path("/lawSearch.do")
-                            .queryParam("OC", apiKey)
-                            .queryParam("target", "law")
-                            .queryParam("query", query)
-                            .queryParam("type", "JSON")
-                            .build())
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/lawSearch.do")
+                    .queryParam("OC", apiKey)
+                    .queryParam("target", "law")
+                    .queryParam("query", query)
+                    .queryParam("type", "JSON")
+                    .encode()
+                    .build()
+                    .toUri();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
             return parseLawChunks(response);
         } catch (Exception e) {
             throw new ExternalApiException("법제처 API 호출 실패: " + e.getMessage(), e);
         }
     }
 
-    // 법령 ID로 조문 전체 조회 (데이터 동기화용)
     public List<LawChunk> fetchLawArticles(String lawId) {
         try {
-            var response = webClient.get()
-                    .uri(u -> u.path("/lawService.do")
-                            .queryParam("OC", apiKey)
-                            .queryParam("target", "law")
-                            .queryParam("ID", lawId)
-                            .queryParam("type", "JSON")
-                            .build())
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/lawService.do")
+                    .queryParam("OC", apiKey)
+                    .queryParam("target", "law")
+                    .queryParam("ID", lawId)
+                    .queryParam("type", "JSON")
+                    .encode()
+                    .build()
+                    .toUri();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
             return parseLawArticles(lawId, response);
         } catch (Exception e) {
             log.warn("법령 조문 조회 실패 (lawId={}): {}", lawId, e.getMessage());
@@ -85,7 +88,6 @@ public class LawApiClient {
             if (lawObj instanceof List<?> list) {
                 laws = (List<Map<String, Object>>) list;
             } else if (lawObj instanceof Map<?, ?> map) {
-                // 결과가 1건일 때 배열 대신 객체로 오는 경우
                 laws = List.of((Map<String, Object>) map);
             } else {
                 return List.of();
@@ -116,8 +118,7 @@ public class LawApiClient {
             if (law == null) return List.of();
 
             Map<String, Object> basicInfo = (Map<String, Object>) law.get("기본정보");
-            Map<String, Object> lawNameMap = (Map<String, Object>) basicInfo.get("법령명");
-            String lawName = String.valueOf(lawNameMap.getOrDefault("한글법령명", ""));
+            String lawName = String.valueOf(basicInfo.getOrDefault("법령명_한글", ""));
 
             Map<String, Object> articlesWrapper = (Map<String, Object>) law.get("조문");
             if (articlesWrapper == null) return List.of();

@@ -1,7 +1,7 @@
 # PIPAi 개발 현황 문서
 
-> 작성일: 2025-05-10 | 최종 업데이트: 2026-05-14 | 마감: 2025-05-29 (15일 남음)  
-> 전체 완성도: **약 99.5%** (P0·P1·P2 완료 + QA 버그 수정 + E2E 테스트 + LLM 컨텍스트 개선)
+> 작성일: 2025-05-10 | 최종 업데이트: 2026-05-20 | 마감: 2025-05-29 (9일 남음)  
+> 전체 완성도: **약 99%** (P0·P1·P2·P4 완료 + 벡터 DB 실데이터 확인 + 행정규칙 미추가)
 
 ---
 
@@ -43,6 +43,20 @@
 | 16 | Playwright E2E 테스트 18개 구축 (모킹 기반, 백엔드 불필요) | `frontend/e2e/` | ✅ 완료 |
 | 17 | E2E 테스트 가이드 문서 작성 | `docs/E2E_TEST.md` | ✅ 완료 |
 
+### 🟣 P5 — 벡터 DB 실데이터 적재 + 배포 안정화 🔄 **진행 중 (2026-05-20)**
+
+| 순위 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| 28 | WebClient → RestTemplate 교체 (한글 URL 인코딩 + macOS DNS 문제 해결) | `LawApiClient.java`, `PipcApiClient.java` | ✅ 완료 |
+| 29 | `PipcApiClient.parseCaseData()` 파싱 키 수정 (`PrecSearch→Expc`, `prec→expc`, 필드명 수정) | `PipcApiClient.java` | ✅ 완료 |
+| 30 | `parseLawArticles()` 법령명 파싱 수정 (`법령명.한글법령명 → 법령명_한글`) | `LawApiClient.java` | ✅ 완료 |
+| 31 | `DataInitializer` 전체 데이터 적재 (단일 쿼리 12개 법령 전체 + totalCnt 기반 전체 판례) | `DataInitializer.java` | ✅ 완료 |
+| 32 | `application-local.yml` 플레이스홀더 → 실제 키 값 수정 | `application-local.yml` | ✅ 완료 |
+| 33 | 로컬 벡터 DB 실데이터 적재 확인 (법령 368건 + 판례 50건) | — | ✅ 완료 |
+| 34 | **행정규칙(고시·지침) 123건 RAG 코퍼스 추가** | `LawApiClient.java`, `DataInitializer.java` | ⬜ 예정 |
+| 35 | 배포 환경 법제처 IP 등록 (ECS IP `43.203.143.34`) | open.law.go.kr | ⬜ 예정 |
+| 36 | 프로덕션 ECS 재배포 → RDS 실데이터 적재 확인 | — | ⬜ 예정 |
+
 ### 🔵 P4 — LLM 컨텍스트 개선 + QA 버그 수정 ✅ **완료 (2026-05-14)**
 
 | 순위 | 작업 | 파일 | 상태 |
@@ -76,8 +90,9 @@
 [완료] 5/11       → QA 버그 수정 3건 + E2E 테스트 18개 + 문서화
 [완료] 5/14       → LLM 컨텍스트 개선 (대화 이력·히든 메모·6개 프로필 필드·답변 형식)
 [완료] 5/14       → QA 버그 수정 5건 (마크다운 렌더링 4건 + 문의글 기업정보 자동 채우기)
-[진행 예정] 5/15~5/20  → 배포 안정화 (ECS Fargate 재배포 — V7 마이그레이션 포함 + 환경변수 확인)
-[진행 예정] 5/21~5/29  → 최종 QA (프로덕션) + 발표 자료 준비
+[완료] 5/20       → 벡터 DB 실데이터 적재 확인 + API 클라이언트 버그 수정 3건
+[예정] 5/20~5/21  → 행정규칙 123건 추가 + 프로덕션 IP 등록 + ECS 재배포
+[예정] 5/22~5/29  → 최종 QA (프로덕션) + 발표 자료 준비
 ```
 
 ---
@@ -90,6 +105,7 @@
 4. [데이터베이스](#4-데이터베이스)
 5. [미완성 항목 목록](#5-미완성-항목-목록)
 6. [환경변수 체크리스트](#6-환경변수-체크리스트)
+7. [구현 계획 (5/20 기준 잔여)](#7-구현-계획)
 
 ---
 
@@ -100,8 +116,8 @@
 | 백엔드 API (Controller) | 97% | `POST /conversations/{id}/messages` SSE 완성 |
 | 백엔드 Service | 99% | InquiryService·ChatService·ProfileService 완성 (히든 메모 포함) |
 | RAG 파이프라인 | 99% | 대화 이력·6개 프로필 필드·히든 메모·답변 형식 시스템 프롬프트 완성 |
-| 외부 API 연동 | 90% | 파싱 완성, LawDataSyncService 변경이력 감지 미완 |
-| 벡터 DB | 90% | 초기 데이터 자동 로드 완성 (DataInitializer) |
+| 외부 API 연동 | 95% | 파싱 버그 3건 수정 완료, 행정규칙 미추가 |
+| 벡터 DB | 95% | 로컬 법령 368건+판례 50건 적재 확인, 행정규칙 123건 미추가 |
 | 프론트엔드 페이지 | 100% | 마크다운 렌더링·문의글 기업정보 자동 채우기 완료 |
 | 프론트엔드 API 함수 | 100% | 전 엔드포인트 연동 완성 |
 | DB 마이그레이션 | 100% | V1~V7 완성 (V7: hidden_memo 컬럼) |
@@ -166,11 +182,12 @@
 
 | 메서드 | 상태 | 비고 |
 |--------|------|------|
+| `fetchTotalCount()` | ✅ 완성 | totalCnt 조회 (전체 페이지 순회용) |
 | `fetchDecisions(int page, int perPage)` | ✅ 완성 | API 호출 + 응답 파싱 완료 |
-| `parseCaseData(Map response)` | ✅ 완성 | `PrecSearch.prec` 파싱, 판시사항+판결요지 합산 |
+| `parseCaseData(Map response)` | ✅ 완성 | `Expc.expc` 파싱, 안건명·안건번호·회신일자 합산 (2026-05-20 키 수정) |
 
-> ⚠️ 참고: `PipcApiClient`는 현재 법제처 DRF API(`lawSearch.do?target=expc`)를 사용 중.  
-> 실제 개보위 데이터 API(`api.odcloud.kr`)와 엔드포인트가 다름 — 데모 전 확인 필요.
+> ℹ️ `PipcApiClient`는 법제처 DRF API(`lawSearch.do?target=expc` — 법령해석례)를 사용.  
+> 실제 응답 구조: `Expc.expc[].{법령해석례일련번호, 안건명, 안건번호, 회신일자}` (판례가 아닌 법령해석례임)
 
 ### 2-5. Repository Layer
 
@@ -323,6 +340,61 @@
   ]
 }
 ```
+
+---
+
+---
+
+## 7. 구현 계획
+
+> 기준일: 2026-05-20 | 마감: 2026-05-29
+
+### 7-1. 행정규칙 RAG 코퍼스 추가 ⬜ (우선순위 최상)
+
+**목적**: 개인정보보호위원회 고시·지침(123건)을 RAG 컨텍스트에 포함 → 법률보다 구체적인 실무 기준 제공으로 답변 정확도 향상
+
+**현재**: `target=law` (법령 12개, 368조문)만 저장. 고시·지침 없음  
+**목표**: `target=admrul` (행정규칙 123건) 추가 적재 → 총 RAG 코퍼스 약 500건 이상
+
+**구현 범위**:
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `external/LawApiClient.java` | `searchAdmruls(String query)`, `fetchAdmrulArticles(String admrulId)` 메서드 추가 |
+| `service/DataInitializer.java` | `initAdmrulData()` 메서드 추가 — `law_embeddings` 테이블 공용 (law_id 구분) |
+| `service/LawDataSyncService.java` | 행정규칙 갱신 스케줄러 확장 |
+
+**법제처 API**:
+```
+GET /lawSearch.do?OC={key}&target=admrul&query=개인정보&type=JSON   # 목록 (totalCnt=123)
+GET /lawService.do?OC={key}&target=admrul&ID={admrulId}&type=JSON  # 본문 조문
+```
+
+**응답 구조**: `AdmRulSearch.admrul[].행정규칙ID`, `행정규칙명`, `행정규칙일련번호`  
+조문 파싱은 `법령` 구조와 동일하므로 `parseLawArticles()` 재사용 가능
+
+---
+
+### 7-2. 배포 환경 실데이터 적재 ⬜
+
+**순서**:
+1. open.law.go.kr → 시스템정보에서 ECS IP `43.203.143.34` 등록
+2. ECS 태스크 재배포 (`aws ecs update-service --force-new-deployment`)
+3. CloudWatch 로그에서 `법령 임베딩 초기화 완료: N건` 확인
+4. 배포 후 IP가 바뀌어도 RDS에 데이터가 있으므로 이후 재배포 시 스킵됨
+
+**주의**: ECS 메모리 1GB — 행정규칙 추가 시 임베딩 호출 약 600회 → OOM 가능성 낮지만 모니터링 필요
+
+---
+
+### 7-3. 계획 대비 미구현 항목 (공모전 기간 내 보류)
+
+| 항목 | 이유 |
+|------|------|
+| 현행법령(공포일 기준) 별도 조회 | 시행일 기준과 동일 데이터 — 실질적 차이 없음 |
+| 법령 변경이력 감지 (조문 단위) | 현재 upsert 방식으로 갱신 효과 동일, 구현 복잡도 대비 효과 낮음 |
+| 일자별 조문 개정 이력 조회 | 복잡도 높음 + 데모 임팩트 낮음 |
+| LawDataSyncService 행정규칙 갱신 | 초기 적재 완료 후 월 1회 갱신, 공모전 기간 내 변경 없음 |
 
 ---
 
