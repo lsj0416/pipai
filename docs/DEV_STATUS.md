@@ -53,7 +53,7 @@
 | 31 | `DataInitializer` 전체 데이터 적재 (단일 쿼리 12개 법령 전체 + totalCnt 기반 전체 판례) | `DataInitializer.java` | ✅ 완료 |
 | 32 | `application-local.yml` 플레이스홀더 → 실제 키 값 수정 | `application-local.yml` | ✅ 완료 |
 | 33 | 로컬 벡터 DB 실데이터 적재 확인 (법령 368건 + 판례 50건) | — | ✅ 완료 |
-| 34 | **행정규칙(고시·지침) 123건 RAG 코퍼스 추가** | `LawApiClient.java`, `DataInitializer.java` | ⬜ 예정 |
+| 34 | **행정규칙(고시·지침) RAG 코퍼스 추가** | `LawApiClient.java`, `DataInitializer.java`, `LawDataSyncService.java` | ✅ 완료 (2026-05-20) |
 | 35 | 배포 환경 법제처 IP 등록 (ECS IP `43.203.143.34`) | open.law.go.kr | ⬜ 예정 |
 | 36 | 프로덕션 ECS 재배포 → RDS 실데이터 적재 확인 | — | ⬜ 예정 |
 
