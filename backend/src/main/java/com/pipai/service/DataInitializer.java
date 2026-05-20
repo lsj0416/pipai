@@ -29,6 +29,7 @@ public class DataInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void initializeData() {
         initLawData();
+        initAdmrulData();
         initCaseData();
     }
 
@@ -67,6 +68,44 @@ public class DataInitializer {
         }
 
         log.info("법령 임베딩 초기화 완료: {}건", total);
+    }
+
+    private void initAdmrulData() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM law_embeddings WHERE law_id LIKE 'admrul_%'", Integer.class);
+        if (count != null && count > 0) {
+            log.info("행정규칙 임베딩 이미 존재 ({}건) — 초기화 스킵", count);
+            return;
+        }
+
+        log.info("행정규칙 임베딩 초기 데이터 로드 시작");
+        int total = 0;
+
+        try {
+            List<LawApiClient.LawChunk> admrulMetas = lawApiClient.searchAdmruls("개인정보");
+            log.info("개인정보 관련 행정규칙 {}건 발견", admrulMetas.size());
+            for (LawApiClient.LawChunk meta : admrulMetas) {
+                try {
+                    List<LawApiClient.LawChunk> articles = lawApiClient.fetchAdmrulArticles(meta.lawId());
+                    for (LawApiClient.LawChunk article : articles) {
+                        if (article.content().isBlank()) continue;
+                        float[] embedding = embeddingService.embed(article.content());
+                        // law_id에 admrul_ prefix를 붙여 법령 ID와 충돌 방지
+                        lawEmbeddingRepository.upsert(
+                                "admrul_" + article.lawId(), article.articleNumber(),
+                                article.content(), article.lawName(), embedding);
+                        total++;
+                    }
+                    log.info("행정규칙 조문 저장 완료: {} ({}건)", meta.lawName(), articles.size());
+                } catch (Exception e) {
+                    log.warn("행정규칙 조문 로드 실패 (admrulId={}): {}", meta.lawId(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("행정규칙 초기화 실패: {}", e.getMessage());
+        }
+
+        log.info("행정규칙 임베딩 초기화 완료: {}건", total);
     }
 
     private void initCaseData() {

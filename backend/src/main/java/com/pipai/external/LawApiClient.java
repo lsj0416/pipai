@@ -72,6 +72,81 @@ public class LawApiClient {
         return searchLaws("개인정보");
     }
 
+    @Cacheable("admrulSearch")
+    public List<LawChunk> searchAdmruls(String query) {
+        try {
+            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/lawSearch.do")
+                    .queryParam("OC", apiKey)
+                    .queryParam("target", "admrul")
+                    .queryParam("query", query)
+                    .queryParam("type", "JSON")
+                    .encode()
+                    .build()
+                    .toUri();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
+            return parseAdmrulChunks(response);
+        } catch (Exception e) {
+            throw new ExternalApiException("법제처 행정규칙 API 호출 실패: " + e.getMessage(), e);
+        }
+    }
+
+    public List<LawChunk> fetchAdmrulArticles(String admrulId) {
+        try {
+            URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/lawService.do")
+                    .queryParam("OC", apiKey)
+                    .queryParam("target", "admrul")
+                    .queryParam("ID", admrulId)
+                    .queryParam("type", "JSON")
+                    .encode()
+                    .build()
+                    .toUri();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
+            return parseLawArticles(admrulId, response);
+        } catch (Exception e) {
+            log.warn("행정규칙 조문 조회 실패 (admrulId={}): {}", admrulId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    List<LawChunk> parseAdmrulChunks(Map<String, Object> response) {
+        if (response == null) return List.of();
+
+        try {
+            Map<String, Object> admrulSearch = (Map<String, Object>) response.get("AdmRulSearch");
+            if (admrulSearch == null) {
+                log.warn("법제처 행정규칙 응답에 AdmRulSearch 키 없음: {}", response.keySet());
+                return List.of();
+            }
+
+            Object admrulObj = admrulSearch.get("admrul");
+            List<Map<String, Object>> admruls;
+            if (admrulObj instanceof List<?> list) {
+                admruls = (List<Map<String, Object>>) list;
+            } else if (admrulObj instanceof Map<?, ?> map) {
+                admruls = List.of((Map<String, Object>) map);
+            } else {
+                return List.of();
+            }
+
+            return admruls.stream()
+                    .map(admrul -> new LawChunk(
+                            String.valueOf(admrul.getOrDefault("행정규칙일련번호", "")),
+                            String.valueOf(admrul.getOrDefault("행정규칙명한글", "")),
+                            "",
+                            String.valueOf(admrul.getOrDefault("소관부처명", "")) + " — " +
+                            String.valueOf(admrul.getOrDefault("행정규칙구분명", ""))
+                    ))
+                    .filter(chunk -> !chunk.lawId().isEmpty() && !chunk.lawName().isEmpty())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("행정규칙 검색 응답 파싱 실패: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     List<LawChunk> parseLawChunks(Map<String, Object> response) {
         if (response == null) return List.of();

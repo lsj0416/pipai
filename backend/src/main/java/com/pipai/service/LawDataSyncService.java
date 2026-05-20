@@ -39,4 +39,27 @@ public class LawDataSyncService {
             log.error("법령 데이터 동기화 실패", e);
         }
     }
+
+    // 매월 1일 새벽 3시 실행 (법령 동기화 완료 후)
+    @Scheduled(cron = "0 0 3 1 * *")
+    public void syncAdmrulData() {
+        log.info("행정규칙 데이터 동기화 시작");
+        int count = 0;
+        try {
+            var admruls = lawApiClient.searchAdmruls("개인정보");
+            for (var meta : admruls) {
+                var articles = lawApiClient.fetchAdmrulArticles(meta.lawId());
+                for (var article : articles) {
+                    if (article.content().isBlank()) continue;
+                    float[] embedding = embeddingService.embed(article.content());
+                    lawEmbeddingRepository.upsert("admrul_" + article.lawId(), article.articleNumber(),
+                            article.content(), article.lawName(), embedding);
+                    count++;
+                }
+            }
+            log.info("행정규칙 데이터 동기화 완료: {}건", count);
+        } catch (Exception e) {
+            log.error("행정규칙 데이터 동기화 실패", e);
+        }
+    }
 }
