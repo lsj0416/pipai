@@ -103,7 +103,7 @@ public class LawApiClient {
                     .toUri();
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
-            return parseLawArticles(admrulId, response);
+            return parseAdmrulArticles(admrulId, response);
         } catch (Exception e) {
             log.warn("행정규칙 조문 조회 실패 (admrulId={}): {}", admrulId, e.getMessage());
             return List.of();
@@ -134,10 +134,10 @@ public class LawApiClient {
             return admruls.stream()
                     .map(admrul -> new LawChunk(
                             String.valueOf(admrul.getOrDefault("행정규칙일련번호", "")),
-                            String.valueOf(admrul.getOrDefault("행정규칙명한글", "")),
+                            String.valueOf(admrul.getOrDefault("행정규칙명", "")),
                             "",
                             String.valueOf(admrul.getOrDefault("소관부처명", "")) + " — " +
-                            String.valueOf(admrul.getOrDefault("행정규칙구분명", ""))
+                            String.valueOf(admrul.getOrDefault("행정규칙종류", ""))
                     ))
                     .filter(chunk -> !chunk.lawId().isEmpty() && !chunk.lawName().isEmpty())
                     .toList();
@@ -182,6 +182,52 @@ public class LawApiClient {
             log.warn("법령 검색 응답 파싱 실패: {}", e.getMessage());
             return List.of();
         }
+    }
+
+    // 행정규칙 조문 응답: AdmRulService.조문내용 = String[]
+    // 각 항목이 "제1조(목적) 내용..." 형식의 완성된 문자열
+    @SuppressWarnings("unchecked")
+    private List<LawChunk> parseAdmrulArticles(String admrulId, Map<String, Object> response) {
+        if (response == null) return List.of();
+        try {
+            Map<String, Object> svc = (Map<String, Object>) response.get("AdmRulService");
+            if (svc == null) {
+                log.warn("행정규칙 조문 응답에 AdmRulService 키 없음 (admrulId={})", admrulId);
+                return List.of();
+            }
+
+            Map<String, Object> basicInfo = (Map<String, Object>) svc.get("행정규칙기본정보");
+            String admrulName = basicInfo != null
+                    ? String.valueOf(basicInfo.getOrDefault("행정규칙명", "")) : "";
+
+            Object contentObj = svc.get("조문내용");
+            List<String> articles;
+            if (contentObj instanceof List<?> list) {
+                articles = (List<String>) list;
+            } else if (contentObj instanceof String s) {
+                articles = List.of(s);
+            } else {
+                return List.of();
+            }
+
+            java.util.List<LawChunk> result = new java.util.ArrayList<>();
+            for (int i = 0; i < articles.size(); i++) {
+                String text = articles.get(i);
+                if (text == null || text.isBlank()) continue;
+                String articleNo = extractArticleNumber(text, i + 1);
+                result.add(new LawChunk(admrulId, admrulName, articleNo, text));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("행정규칙 조문 파싱 실패 (admrulId={}): {}", admrulId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String extractArticleNumber(String text, int index) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("^(제\\d+조(?:의\\d+)?(?:\\([^)]+\\))?)").matcher(text.trim());
+        return m.find() ? m.group(1) : "제" + index + "조";
     }
 
     @SuppressWarnings("unchecked")

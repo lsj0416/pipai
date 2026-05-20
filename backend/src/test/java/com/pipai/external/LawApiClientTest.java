@@ -67,6 +67,49 @@ class LawApiClientTest {
     }
 
     @Test
+    void parseAdmrulChunks_정상응답_파싱성공() {
+        // 실제 API 응답 구조: AdmRulSearch.admrul[].{행정규칙일련번호, 행정규칙명, 소관부처명, 행정규칙종류}
+        Map<String, Object> response = Map.of(
+                "AdmRulSearch", Map.of(
+                        "totalCnt", "2",
+                        "admrul", List.of(
+                                Map.of("행정규칙일련번호", "2100000279224", "행정규칙명", "개인정보 보호법 위반에 대한 과징금 부과기준",
+                                        "소관부처명", "개인정보보호위원회", "행정규칙종류", "고시"),
+                                Map.of("행정규칙일련번호", "2100000230332", "행정규칙명", "개인정보 국외 이전 운영 등에 관한 규정",
+                                        "소관부처명", "개인정보보호위원회", "행정규칙종류", "고시")
+                        )
+                )
+        );
+
+        List<LawApiClient.LawChunk> result = client.parseAdmrulChunks(response);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).lawId()).isEqualTo("2100000279224");
+        assertThat(result.get(0).lawName()).isEqualTo("개인정보 보호법 위반에 대한 과징금 부과기준");
+    }
+
+    @Test
+    void parseAdmrulChunks_단건객체형태_파싱성공() {
+        Map<String, Object> response = Map.of(
+                "AdmRulSearch", Map.of(
+                        "admrul", Map.of("행정규칙일련번호", "2100000279224",
+                                "행정규칙명", "개인정보 보호법 위반에 대한 과징금 부과기준",
+                                "소관부처명", "개인정보보호위원회", "행정규칙종류", "고시")
+                )
+        );
+
+        List<LawApiClient.LawChunk> result = client.parseAdmrulChunks(response);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).lawId()).isEqualTo("2100000279224");
+    }
+
+    @Test
+    void parseAdmrulChunks_null응답_빈리스트반환() {
+        assertThat(client.parseAdmrulChunks(null)).isEmpty();
+    }
+
+    @Test
     void parseLawChunks_법령ID없는항목_필터링() {
         Map<String, Object> response = Map.of(
                 "LawSearch", Map.of(
