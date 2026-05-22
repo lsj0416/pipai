@@ -45,6 +45,9 @@ openai:
   embedding-model: text-embedding-3-small
   chat-model: gpt-4o
 
+admin:
+  secret: ${ADMIN_SECRET:}
+
 logging:
   level:
     com.pipai: INFO

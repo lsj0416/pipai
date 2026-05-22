@@ -44,6 +44,10 @@
         {
           "name": "OPENAI_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:OPENAI_API_KEY::"
+        },
+        {
+          "name": "ADMIN_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:257016720527:secret:pipai/prod:ADMIN_SECRET::"
         }
       ],
       "logConfiguration": {
