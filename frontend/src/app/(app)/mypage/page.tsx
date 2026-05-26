@@ -51,7 +51,7 @@ const CONTRACT_OPTIONS = [
 
 const UNIQUE_ID_ITEMS = ['주민등록번호', '운전면허번호', '외국인등록번호', '여권번호'];
 const CREDIT_ITEMS = ['신용카드 정보', '계좌번호', '신용평점'];
-const LOCATION_ITEMS = ['위치정보(GPS)', 'CCTV 영상 ★(제25조)', '차량번호'];
+const LOCATION_ITEMS = ['위치정보(GPS)', 'CCTV 영상(제25조)', '차량번호'];
 
 // ── 폼 상태 타입 ─────────────────────────────────────────────────────────────
 interface FormState {
@@ -551,7 +551,7 @@ export default function MyPage() {
           </div>
         )}
 
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#B45309', marginBottom: 6 }}>고유식별정보 ★ (제24조의2 적용)</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#B45309', marginBottom: 6 }}>고유식별정보 (제24조의2 적용)</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           <div>
             <label style={checkLabel}>
@@ -591,7 +591,7 @@ export default function MyPage() {
           </div>
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gok-red)', marginBottom: 6 }}>민감정보 ★ (제23조 적용)</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gok-red)', marginBottom: 6 }}>민감정보 (제23조 적용)</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 12 }}>
           {['사상·신념', '노조·정당 가입 여부', '정치적 견해', '건강·의료정보', '성생활 정보', '유전정보', '범죄경력 정보', '인종·민족 정보'].map(v => (
             <label key={v} style={checkLabel}>
@@ -615,7 +615,7 @@ export default function MyPage() {
 
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', marginBottom: 6 }}>위치·영상정보</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-          {['위치정보(GPS)', 'CCTV 영상 ★(제25조)', '차량번호'].map(v => (
+          {['위치정보(GPS)', 'CCTV 영상(제25조)', '차량번호'].map(v => (
             <label key={v} style={checkLabel}>
               <input type="checkbox" checked={form.s4_location.includes(v)}
                 onChange={() => set({ s4_location: toggle(form.s4_location, v) })} />
