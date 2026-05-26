@@ -45,11 +45,18 @@ public class AuthService {
     );
 
     @Transactional
-    public SignupResult signup(String email, String password, String name) {
+    public SignupResult signup(String email, String password, String name,
+                               String title, String contactPhone,
+                               boolean termsService, boolean termsPrivacy,
+                               boolean termsMarketing, boolean termsAiUsage) {
+        if (!termsService || !termsPrivacy) {
+            throw new IllegalArgumentException("필수 약관에 동의해야 합니다.");
+        }
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
-        User user = User.create(email, passwordEncoder.encode(password), name);
+        User user = User.create(email, passwordEncoder.encode(password), name,
+                title, contactPhone, termsService, termsPrivacy, termsMarketing, termsAiUsage);
         userRepository.save(user);
         DEFAULT_RISKS.forEach(r ->
                 riskRepository.save(RiskChecklistItem.create(user, r.title(), r.description(), r.level(), r.relatedLaw()))

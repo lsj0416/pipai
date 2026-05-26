@@ -69,6 +69,17 @@ public class CompanyProfile {
         this.sensitiveDataTypes = sensitiveDataTypes;
     }
 
+    public void patchField(String field, String value) {
+        switch (field) {
+            case "employeeCount" -> {
+                try { this.employeeCount = Integer.parseInt(value.trim()); } catch (NumberFormatException ignored) {}
+            }
+            case "businessType" -> this.businessType = value;
+            case "annualRevenue" -> this.annualRevenue = value;
+            case "hasPrivacyPolicy" -> this.hasPrivacyPolicy = Boolean.parseBoolean(value);
+        }
+    }
+
     public void appendHiddenMemo(String entry) {
         this.hiddenMemo = (hiddenMemo == null || hiddenMemo.isBlank()) ? entry : hiddenMemo + "\n" + entry;
     }

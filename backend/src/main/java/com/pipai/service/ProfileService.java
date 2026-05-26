@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,6 +27,21 @@ public class ProfileService {
     public CompanyProfile getProfile(UUID userId) {
         return profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("프로필이 존재하지 않습니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CompanyProfile> findProfile(UUID userId) {
+        return profileRepository.findByUserId(userId);
+    }
+
+    @Transactional
+    public void patchField(UUID userId, String field, String value) {
+        CompanyProfile profile = profileRepository.findByUserId(userId).orElseGet(() -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+            return profileRepository.save(CompanyProfile.create(user));
+        });
+        profile.patchField(field, value);
     }
 
     @Transactional

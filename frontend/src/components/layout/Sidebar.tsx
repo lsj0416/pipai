@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Logo from '@/components/Logo';
 import type { NavId, RiskMiniItem, SeverityActive, UserData, UserBusiness } from '@/lib/types';
 import { logout } from '@/lib/api/auth';
-import { listConversations, type ConversationListItem } from '@/lib/api/conversations';
+import { listConversations, deleteConversation, type ConversationListItem } from '@/lib/api/conversations';
 import { getRisks } from '@/lib/api/dashboard';
 
 interface SidebarProps {
@@ -14,6 +14,18 @@ interface SidebarProps {
 }
 
 const stripMd = (text: string) => text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\n/g, ' ');
+
+function formatRelTime(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return '방금 전';
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return new Date(dateStr).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
 
 const NAV_ITEMS: { id: NavId; label: string; path: string }[] = [
   { id: 'chat',    label: '대화',            path: '/chat' },
@@ -75,6 +87,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [localRiskItems, setLocalRiskItems] = useState<RiskMiniItem[]>(riskItems);
+  const [hoveredConvId, setHoveredConvId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleRiskUpdate = () => {
@@ -102,10 +115,9 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
     return () => window.removeEventListener('riskUpdate', handleRiskUpdate);
   }, []);
 
-  useEffect(() => {
+  const loadConversations = () => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
-
     listConversations(token)
       .then(res => {
         if (res.success && res.data) {
@@ -113,7 +125,18 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
         }
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadConversations();
+   
   }, [pathname]);
+
+  useEffect(() => {
+    window.addEventListener('conversationUpdate', loadConversations);
+    return () => window.removeEventListener('conversationUpdate', loadConversations);
+   
+  }, []);
 
   async function handleLogout() {
     await logout();
@@ -153,30 +176,69 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
           {conversations.map(conv => {
             const isActive = pathname === '/chat' && typeof window !== 'undefined'
               && new URLSearchParams(window.location.search).get('conversationId') === conv.conversationId;
+            const isHovered = hoveredConvId === conv.conversationId;
             return (
-              <button
+              <div
                 key={conv.conversationId}
-                onClick={() => router.push(`/chat?conversationId=${conv.conversationId}`)}
-                style={{
-                  width: 'calc(100% - 16px)', margin: '0 8px', textAlign: 'left',
-                  padding: '8px 14px', borderRadius: 8, border: 'none',
-                  background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
-                  color: 'white', fontSize: 12, fontFamily: 'var(--font-body)',
-                  fontWeight: 400, cursor: 'pointer',
-                  letterSpacing: '-0.01em',
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                style={{ position: 'relative', margin: '0 8px' }}
+                onMouseEnter={() => setHoveredConvId(conv.conversationId)}
+                onMouseLeave={() => setHoveredConvId(null)}
               >
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85 }}>
-                  {conv.title || '대화'}
-                </div>
-                {conv.lastMessage && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                    {stripMd(conv.lastMessage)}
+                <button
+                  onClick={() => router.push(`/chat?conversationId=${conv.conversationId}`)}
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '8px 36px 8px 14px', borderRadius: 8, border: 'none',
+                    background: isActive ? 'rgba(255,255,255,0.12)' : isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    color: 'white', fontSize: 12, fontFamily: 'var(--font-body)',
+                    fontWeight: 400, cursor: 'pointer',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85, flex: 1, minWidth: 0 }}>
+                      {conv.title || '대화'}
+                    </div>
+                    {conv.updatedAt && !isHovered && (
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {formatRelTime(conv.updatedAt)}
+                      </div>
+                    )}
                   </div>
+                  {conv.lastMessage && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                      {stripMd(conv.lastMessage)}
+                    </div>
+                  )}
+                </button>
+
+                {isHovered && (
+                  <button
+                    title="대화 삭제"
+                    onClick={async e => {
+                      e.stopPropagation();
+                      if (!window.confirm('이 대화를 삭제하시겠어요?')) return;
+                      const token = localStorage.getItem('accessToken');
+                      if (!token) return;
+                      await deleteConversation(token, conv.conversationId);
+                      setConversations(prev => prev.filter(c => c.conversationId !== conv.conversationId));
+                      window.dispatchEvent(new CustomEvent('conversationUpdate'));
+                    }}
+                    style={{
+                      position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                      width: 24, height: 24, borderRadius: 6, border: 'none',
+                      background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(228,3,46,0.25)'; e.currentTarget.style.color = '#fca5a5'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
                 )}
-              </button>
+              </div>
             );
           })}
         </>

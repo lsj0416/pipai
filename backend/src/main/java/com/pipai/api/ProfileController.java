@@ -4,7 +4,9 @@ import com.pipai.common.ApiResponse;
 import com.pipai.domain.CompanyProfile;
 import com.pipai.service.ProfileService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +30,16 @@ public class ProfileController {
     @GetMapping
     public ApiResponse<CompanyProfile> getProfile(@AuthenticationPrincipal UUID userId) {
         return ApiResponse.ok(profileService.getProfile(userId));
+    }
+
+    public record FieldPatchRequest(@NotBlank String field, @NotBlank String value) {}
+
+    @PatchMapping("/field")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void patchField(
+            @AuthenticationPrincipal UUID userId,
+            @Valid @RequestBody FieldPatchRequest req) {
+        profileService.patchField(userId, req.field(), req.value());
     }
 
     @PutMapping

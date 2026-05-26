@@ -18,7 +18,13 @@ public class AuthController {
 
     public record SignupRequest(@Email @NotBlank String email,
                                 @NotBlank String password,
-                                @NotBlank String name) {}
+                                @NotBlank String name,
+                                String title,
+                                @NotBlank String contactPhone,
+                                boolean termsService,
+                                boolean termsPrivacy,
+                                boolean termsMarketing,
+                                boolean termsAiUsage) {}
 
     public record LoginRequest(@Email @NotBlank String email,
                                @NotBlank String password) {}
@@ -28,7 +34,11 @@ public class AuthController {
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AuthService.SignupResult> signup(@Valid @RequestBody SignupRequest req) {
-        return ApiResponse.ok(authService.signup(req.email(), req.password(), req.name()));
+        return ApiResponse.ok(authService.signup(
+                req.email(), req.password(), req.name(),
+                req.title(), req.contactPhone(),
+                req.termsService(), req.termsPrivacy(),
+                req.termsMarketing(), req.termsAiUsage()));
     }
 
     @PostMapping("/login")

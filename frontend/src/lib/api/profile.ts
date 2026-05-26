@@ -34,3 +34,15 @@ export async function upsertProfile(
     body: JSON.stringify(body),
   });
 }
+
+export async function patchProfileField(
+  token: string,
+  field: string,
+  value: string,
+): Promise<void> {
+  await apiRequest<void>('/api/profile/field', {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify({ field, value }),
+  });
+}

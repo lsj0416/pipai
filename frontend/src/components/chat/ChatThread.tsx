@@ -8,6 +8,8 @@ import InquiryButton from '@/components/inquiry/InquiryButton';
 interface ChatThreadProps {
   messages: ChatMessage[];
   onPickQuick: (reply: string) => void;
+  onInquiry?: () => void;
+  streaming?: boolean;
 }
 
 function QuickReply({ label, onClick }: { label: string; onClick: () => void }) {
@@ -53,6 +55,44 @@ function AssistantMessage({ children }: { children: React.ReactNode }) {
   );
 }
 
+const EXPERT_CHANNELS = [
+  { label: '개인정보보호위원회 기술지원 컨설팅', href: 'https://www.pipc.go.kr' },
+  { label: '법령해석지원센터', href: 'https://www.moleg.go.kr' },
+  { label: '자가진단 서비스', href: 'https://privacy.go.kr' },
+];
+
+function MessageFooter({ showInquiry, onInquiry }: { showInquiry: boolean; onInquiry?: () => void }) {
+  return (
+    <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 10, paddingTop: 10 }}>
+      <p style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6, margin: '0 0 10px' }}>
+        이 답변은 참고용이며, 법적 효력이 없습니다.<br />
+        중요한 사항은 반드시 전문가와 상담하세요.
+      </p>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', marginBottom: 6 }}>전문가 지원 채널</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: showInquiry ? 12 : 0 }}>
+        {EXPERT_CHANNELS.map(({ label, href }) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>· {label}</span>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 11, color: 'var(--gok-blue)', fontWeight: 600, textDecoration: 'none' }}
+            >
+              바로가기
+            </a>
+          </div>
+        ))}
+      </div>
+      {showInquiry && onInquiry && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+          <InquiryButton onClick={onInquiry} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function renderPart(p: MessagePart, j: number): React.ReactElement | null {
   if (p.type === 'text') {
     return <div key={j} style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--fg-1)', letterSpacing: '-0.01em' }} dangerouslySetInnerHTML={{ __html: p.html }} />;
@@ -71,7 +111,10 @@ function renderPart(p: MessagePart, j: number): React.ReactElement | null {
   return null;
 }
 
-export default function ChatThread({ messages, onPickQuick }: ChatThreadProps) {
+export default function ChatThread({ messages, onPickQuick, onInquiry, streaming }: ChatThreadProps) {
+  const lastAssistantIdx = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+  const hasUserMessage = messages.some(m => m.role === 'user');
+
   return (
     <div style={{ padding: '24px 32px 32px', maxWidth: 820, margin: '0 auto' }}>
       {messages.map((m, i) => {
@@ -83,9 +126,17 @@ export default function ChatThread({ messages, onPickQuick }: ChatThreadProps) {
           );
         }
         if (m.role === 'user') return <UserBubble key={i}>{m.content}</UserBubble>;
+
+        const isLast = i === lastAssistantIdx;
+        const showFooter = hasUserMessage && (!isLast || !streaming);
+        const showInquiry = isLast && !streaming;
+
         return (
           <AssistantMessage key={i}>
             {m.parts.map((p, j) => renderPart(p, j))}
+            {showFooter && (
+              <MessageFooter showInquiry={showInquiry} onInquiry={onInquiry} />
+            )}
           </AssistantMessage>
         );
       })}

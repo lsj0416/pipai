@@ -27,6 +27,16 @@ export interface SSEChecklistEvent {
   content: { itemId: string; status: string };
 }
 
+export interface SSEProfileSuggestionEvent {
+  type: 'profile_suggestion';
+  content: {
+    field: string;
+    label: string;
+    value: string;
+    displayValue: string;
+  };
+}
+
 export interface SSEDoneEvent {
   type: 'done';
 }
@@ -41,6 +51,7 @@ export type SSEEvent =
   | SSELawRefEvent
   | SSECaseRefEvent
   | SSEChecklistEvent
+  | SSEProfileSuggestionEvent
   | SSEDoneEvent
   | SSEErrorEvent;
 
@@ -49,7 +60,7 @@ export interface ConversationListItem {
   conversationId: string;
   title: string;
   lastMessage: string;
-  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ConversationMessage {
@@ -153,6 +164,16 @@ export async function sendMessage(
       }
     }
   }
+}
+
+export async function deleteConversation(
+  token: string,
+  conversationId: string,
+): Promise<void> {
+  await fetch(`${getBaseUrl()}/api/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function getMessages(

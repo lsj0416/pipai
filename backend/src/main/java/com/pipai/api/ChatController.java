@@ -36,7 +36,7 @@ public class ChatController {
             String conversationId,
             String title,
             String lastMessage,
-            Instant createdAt
+            Instant updatedAt
     ) {}
     public record ConversationData(
             String id,
@@ -69,6 +69,14 @@ public class ChatController {
             @AuthenticationPrincipal UUID userId,
             @Valid @RequestBody CreateConversationRequest req) {
         return ApiResponse.ok(toConversationData(chatService.createConversation(userId, req.title())));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UUID userId) {
+        chatService.deleteConversation(id, userId);
     }
 
     @GetMapping("/{id}/messages")
@@ -106,7 +114,7 @@ public class ChatController {
                 conversation.getId().toString(),
                 conversation.getTitle(),
                 lastMessage != null ? lastMessage.getContent() : "",
-                conversation.getCreatedAt()
+                conversation.getUpdatedAt()
         );
     }
 

@@ -4,6 +4,12 @@ export interface SignupRequest {
   email: string;
   password: string;
   name: string;
+  title?: string;
+  contactPhone: string;
+  termsService: boolean;
+  termsPrivacy: boolean;
+  termsMarketing: boolean;
+  termsAiUsage: boolean;
 }
 
 export interface SignupResponse {
