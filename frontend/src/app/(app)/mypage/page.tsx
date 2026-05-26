@@ -49,6 +49,10 @@ const CONTRACT_OPTIONS = [
   { v: 'unknown', l: '불명확', warn: false },
 ];
 
+const UNIQUE_ID_ITEMS = ['주민등록번호', '운전면허번호', '외국인등록번호', '여권번호'];
+const CREDIT_ITEMS = ['신용카드 정보', '계좌번호', '신용평점'];
+const LOCATION_ITEMS = ['위치정보(GPS)', 'CCTV 영상 ★(제25조)', '차량번호'];
+
 // ── 폼 상태 타입 ─────────────────────────────────────────────────────────────
 interface FormState {
   s1_companyName: string; s1_repName: string; s1_bizNo: string;
@@ -303,15 +307,25 @@ export default function MyPage() {
     getProfile(token).then(res => {
       if (res.success && res.data) {
         const p = res.data;
-        setForm(prev => ({
-          ...prev,
-          s3_industry: p.businessType ?? prev.s3_industry,
-          s3_employees: p.employeeCount != null ? String(p.employeeCount) : prev.s3_employees,
-          s3_revenue: p.annualRevenue ?? prev.s3_revenue,
-          s4_general: p.personalDataItems ? p.personalDataItems.split(',').filter(Boolean) : prev.s4_general,
-          s4_sensitive: p.sensitiveDataTypes ? p.sensitiveDataTypes.split(',').filter(Boolean) : prev.s4_sensitive,
-          s7_policy: p.hasPrivacyPolicy === true ? 'yes' : p.hasPrivacyPolicy === false ? 'no' : prev.s7_policy,
-        }));
+        setForm(prev => {
+          const patch: Partial<FormState> = {
+            s3_industry: p.businessType ?? prev.s3_industry,
+            s3_employees: p.employeeCount != null ? String(p.employeeCount) : prev.s3_employees,
+            s3_revenue: p.annualRevenue ?? prev.s3_revenue,
+            s7_policy: p.hasPrivacyPolicy === true ? 'yes' : p.hasPrivacyPolicy === false ? 'no' : prev.s7_policy,
+          };
+          if (p.personalDataItems) {
+            const allItems = p.personalDataItems.split(',').filter(Boolean);
+            patch.s4_general = allItems.filter(x => !UNIQUE_ID_ITEMS.includes(x) && !CREDIT_ITEMS.includes(x) && !LOCATION_ITEMS.includes(x));
+            patch.s4_uniqueId = allItems.filter(x => UNIQUE_ID_ITEMS.includes(x));
+            patch.s4_credit = allItems.filter(x => CREDIT_ITEMS.includes(x));
+            patch.s4_location = allItems.filter(x => LOCATION_ITEMS.includes(x));
+          }
+          if (p.sensitiveDataTypes) {
+            patch.s4_sensitive = p.sensitiveDataTypes.split(',').filter(Boolean);
+          }
+          return { ...prev, ...patch };
+        });
       }
     }).catch(() => {});
   }, [mounted]);
