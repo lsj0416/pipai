@@ -224,6 +224,109 @@ public class LlmService {
                 .onErrorMap(e -> new LlmException("LLM 호출 실패", e));
     }
 
+    public Flux<String> streamProfileFillAnswer(String userMessage, CompanyProfile profile, List<Message> history) {
+        String systemPrompt = buildProfileFillSystemPrompt(profile);
+
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+
+        for (Message msg : history) {
+            String role = msg.getRole() == Message.Role.USER ? "user" : "assistant";
+            String content = msg.getContent();
+            if (msg.getRole() == Message.Role.ASSISTANT) {
+                content = content.replace(DISCLAIMER, "").strip();
+            }
+            messages.add(Map.of("role", role, "content", content));
+        }
+        messages.add(Map.of("role", "user", "content", userMessage));
+
+        var requestBody = Map.of("model", chatModel, "stream", true, "messages", messages);
+
+        return webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .filter(chunk -> !chunk.isBlank() && !chunk.contains("[DONE]"))
+                .map(this::extractContent)
+                .filter(content -> !content.isEmpty())
+                .onErrorMap(e -> new LlmException("프로필 작성 도우미 스트리밍 실패", e))
+                .concatWith(Flux.just(DISCLAIMER));
+    }
+
+    private String buildProfileFillSystemPrompt(CompanyProfile profile) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("당신은 개인정보보호법 전문 상담사로서, 중소기업·소상공인 대표가 개인정보 처리 현황을 파악하도록 대화로 안내합니다.\n\n");
+
+        sb.append("## 역할 및 원칙\n");
+        sb.append("- 한 번에 하나의 질문만 합니다\n");
+        sb.append("- 법률 용어 대신 쉬운 일상 언어를 사용합니다\n");
+        sb.append("- 각 질문마다 '왜 필요한지' 한 문장으로 설명합니다\n");
+        sb.append("- 이미 답변된 정보는 다시 묻지 않습니다\n");
+        sb.append("- 조건부 항목은 선행 답변에 따라 자동 판단합니다 (예: CCTV 없다고 하면 CCTV 관련 질문 생략)\n\n");
+
+        List<String> filled = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
+
+        if (profile != null) {
+            if (str(profile.getBusinessType())) filled.add("업종: " + profile.getBusinessType());
+            else missing.add("업종 (어떤 사업을 하시나요?)");
+
+            if (profile.getEmployeeCount() != null) filled.add("직원 수: " + profile.getEmployeeCount() + "명");
+            else missing.add("직원 수 → 법적 의무 범위 판단에 사용됩니다");
+
+            if (str(profile.getAnnualRevenue())) filled.add("매출: " + profile.getAnnualRevenue());
+            else missing.add("연 매출 규모 → 기업 규모(소상공인/중소기업) 분류에 사용됩니다");
+
+            if (profile.getHasPrivacyPolicy() != null) filled.add("개인정보처리방침: " + (profile.getHasPrivacyPolicy() ? "있음" : "없음"));
+            else missing.add("개인정보처리방침 보유 여부 → 10인 이상이면 공개 의무가 있습니다");
+
+            if (str(profile.getDelegationStatus())) filled.add("처리 위탁: " + profile.getDelegationStatus());
+            else missing.add("처리 위탁 여부 → 배송·결제·고객센터 등 외부 업체에 개인정보를 맡기는지 확인합니다");
+
+            if (str(profile.getCctvOperationStatus())) filled.add("CCTV: " + profile.getCctvOperationStatus());
+            else missing.add("CCTV 운영 여부 → CCTV가 있으면 영상정보처리기기 운영 규정이 적용됩니다");
+
+            if (str(profile.getMarketingStatus())) filled.add("마케팅 발송: " + profile.getMarketingStatus());
+            else missing.add("마케팅 문자·이메일 발송 여부 → 별도 수신 동의를 받아야 합니다");
+
+            if (str(profile.getProvisionStatus())) filled.add("제3자 제공: " + profile.getProvisionStatus());
+            else missing.add("제3자 제공 여부 → 다른 회사에 고객 정보를 넘기는지 확인합니다");
+
+            if (str(profile.getEncryptionStatus())) filled.add("암호화: " + profile.getEncryptionStatus());
+            else missing.add("개인정보 암호화 처리 여부 → 비밀번호·주민번호 등은 암호화 의무가 있습니다");
+        } else {
+            missing.addAll(List.of(
+                    "업종 (어떤 사업을 하시나요?)",
+                    "직원 수 → 법적 의무 범위 판단에 사용됩니다",
+                    "연 매출 규모 → 기업 규모 분류에 사용됩니다",
+                    "개인정보처리방침 보유 여부",
+                    "처리 위탁 여부 (배송·결제 등 외부 업체 활용)",
+                    "CCTV 운영 여부",
+                    "마케팅 문자·이메일 발송 여부",
+                    "제3자 제공 여부",
+                    "개인정보 암호화 처리 여부"
+            ));
+        }
+
+        if (!filled.isEmpty()) {
+            sb.append("## 이미 파악된 정보\n");
+            filled.forEach(f -> sb.append("- ").append(f).append("\n"));
+            sb.append("\n");
+        }
+
+        if (!missing.isEmpty()) {
+            sb.append("## 아직 필요한 정보 (목록 순서대로 하나씩)\n");
+            missing.forEach(m -> sb.append("- ").append(m).append("\n"));
+            sb.append("\n지금 첫 번째 미입력 항목부터 자연스럽게 질문하세요.");
+        } else {
+            sb.append("## 상태: 핵심 정보가 모두 파악되었습니다\n");
+            sb.append("감사 인사를 하고, 마이페이지에서 전체 내용을 확인할 수 있다고 안내하세요. 추가로 궁금한 법률 질문이 있는지 물어보세요.");
+        }
+
+        return sb.toString();
+    }
+
     public Mono<Map<String, String>> extractProfileFields(String userMessage, List<Message> history) {
         String historyText = history.stream()
                 .filter(m -> m.getRole() != null)

@@ -30,7 +30,7 @@ public class ChatController {
     private final JwtProvider jwtProvider;
     private final MessageRepository messageRepository;
 
-    public record CreateConversationRequest(@NotBlank String title) {}
+    public record CreateConversationRequest(@NotBlank String title, String conversationType) {}
     public record SendMessageRequest(@NotBlank String message) {}
     public record ConversationListItem(
             String conversationId,
@@ -41,6 +41,7 @@ public class ChatController {
     public record ConversationData(
             String id,
             String title,
+            String conversationType,
             Instant createdAt,
             Instant updatedAt
     ) {}
@@ -68,7 +69,7 @@ public class ChatController {
     public ApiResponse<ConversationData> create(
             @AuthenticationPrincipal UUID userId,
             @Valid @RequestBody CreateConversationRequest req) {
-        return ApiResponse.ok(toConversationData(chatService.createConversation(userId, req.title())));
+        return ApiResponse.ok(toConversationData(chatService.createConversation(userId, req.title(), req.conversationType())));
     }
 
     @DeleteMapping("/{id}")
@@ -122,6 +123,7 @@ public class ChatController {
         return new ConversationData(
                 conversation.getId().toString(),
                 conversation.getTitle(),
+                conversation.getConversationType(),
                 conversation.getCreatedAt(),
                 conversation.getUpdatedAt()
         );

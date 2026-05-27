@@ -30,6 +30,9 @@ public class Conversation {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Column(length = 30)
+    private String conversationType;
+
     @JsonIgnore
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
@@ -44,9 +47,14 @@ public class Conversation {
     private Instant updatedAt;
 
     public static Conversation create(User user, String title) {
+        return create(user, title, null);
+    }
+
+    public static Conversation create(User user, String title, String conversationType) {
         Conversation conv = new Conversation();
         conv.user = user;
         conv.title = title;
+        conv.conversationType = conversationType;
         return conv;
     }
 

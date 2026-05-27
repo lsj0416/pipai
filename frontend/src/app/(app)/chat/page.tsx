@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Topbar from '@/components/layout/Topbar';
 import ChatThread from '@/components/chat/ChatThread';
 import Composer from '@/components/chat/Composer';
+import ProfileFillPanel from '@/components/chat/ProfileFillPanel';
 import type { ChatMessage } from '@/lib/types';
 import { createConversation, sendMessage, getMessages, deleteConversation } from '@/lib/api/conversations';
 import type { TopbarMenuItem } from '@/components/layout/Topbar';
@@ -27,6 +28,14 @@ const WELCOME: ChatMessage = {
   }],
 };
 
+const PROFILE_FILL_WELCOME: ChatMessage = {
+  role: 'assistant',
+  parts: [{
+    type: 'text',
+    html: '안녕하세요! 마이페이지 작성을 도와드릴게요.<br/><br/>간단한 질문 몇 가지로 개인정보 처리 현황을 파악하겠습니다. 법률 용어는 제가 쉽게 설명해 드릴 테니 편하게 대답해 주세요.<br/><br/>먼저, 어떤 종류의 사업을 운영하고 계신가요?',
+  }],
+};
+
 function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,12 +48,20 @@ function ChatPageContent() {
     displayValue: string;
   }
 
+  const isProfileFillMode = searchParams.get('mode') === 'profile' && !existingConvId;
+
+  interface ProfileFillProgress {
+    percent: number;
+    recentFields: { label: string; displayValue: string }[];
+  }
+
   const conversationIdRef = useRef<string | null>(existingConvId);
   const [convId, setConvId] = useState<string | null>(existingConvId);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [streaming, setStreaming] = useState(false);
   const [loading, setLoading] = useState(!!existingConvId);
   const [profileSuggestions, setProfileSuggestions] = useState<ProfileSuggestion[]>([]);
+  const [profileFillProgress, setProfileFillProgress] = useState<ProfileFillProgress | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,8 +76,16 @@ function ChatPageContent() {
     const token = localStorage.getItem('accessToken');
     if (!token) { router.push('/login'); return; }
 
-    if (existingConvId) {
+    if (isProfileFillMode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessages([PROFILE_FILL_WELCOME]);
+       
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    if (existingConvId) {
+       
       setMessages([WELCOME]);
       getMessages(token, existingConvId)
         .then(res => {
@@ -85,7 +110,8 @@ function ChatPageContent() {
     }
 
     return () => { cancelled = true; };
-  }, [router, existingConvId]);
+   
+  }, [router, existingConvId, isProfileFillMode]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -96,7 +122,9 @@ function ChatPageContent() {
   const ensureConversationId = async (token: string): Promise<string | null> => {
     if (conversationIdRef.current) return conversationIdRef.current;
     try {
-      const res = await createConversation(token, '개인정보보호 리스크 진단');
+      const title = isProfileFillMode ? '마이페이지 작성 도우미' : '개인정보보호 리스크 진단';
+      const conversationType = isProfileFillMode ? 'PROFILE_FILL' : undefined;
+      const res = await createConversation(token, title, conversationType);
       if (res.success && res.data) {
         conversationIdRef.current = res.data.id;
         setConvId(res.data.id);
@@ -203,6 +231,16 @@ function ChatPageContent() {
             if (prev.some(s => s.field === event.content.field)) return prev;
             return [...prev, event.content];
           });
+        } else if (event.type === 'profile_fields_saved') {
+          setProfileFillProgress({
+            percent: event.content.profileCompletionPercent,
+            recentFields: event.content.savedFields.map(f => ({
+              label: f.label,
+              displayValue: f.displayValue,
+            })),
+          });
+          localStorage.setItem('dashboardNeedsRefresh', 'true');
+          window.dispatchEvent(new CustomEvent('riskUpdate'));
         }
       });
       return true;
@@ -281,8 +319,8 @@ function ChatPageContent() {
   return (
     <>
       <Topbar
-        title="개인정보보호 리스크 진단"
-        status={streaming ? '응답 중...' : '진행 중'}
+        title={isProfileFillMode || profileFillProgress !== null ? '마이페이지 작성 도우미' : '개인정보보호 리스크 진단'}
+        status={streaming ? '응답 중...' : profileFillProgress ? `${profileFillProgress.percent}% 완료` : '진행 중'}
         menuItems={menuItems}
       />
       <div className="chat-scroll" ref={scrollRef}>
@@ -299,6 +337,12 @@ function ChatPageContent() {
           />
         )}
       </div>
+      {profileFillProgress !== null && (
+        <ProfileFillPanel
+          percent={profileFillProgress.percent}
+          recentFields={profileFillProgress.recentFields}
+        />
+      )}
       {profileSuggestions.length > 0 && (
         <div style={{ padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {profileSuggestions.map(s => (

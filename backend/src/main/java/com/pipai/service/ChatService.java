@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +41,24 @@ public class ChatService {
     private final ProfileService profileService;
 
     private static final int MAX_HISTORY = 20;
+
+    private static final Map<String, String> FIELD_LABELS = Map.ofEntries(
+            Map.entry("businessType", "업종"),
+            Map.entry("employeeCount", "직원 수"),
+            Map.entry("annualRevenue", "연 매출"),
+            Map.entry("hasPrivacyPolicy", "개인정보처리방침"),
+            Map.entry("delegationStatus", "처리 위탁 여부"),
+            Map.entry("cctvOperationStatus", "CCTV 운영 여부"),
+            Map.entry("marketingStatus", "마케팅 발송 여부"),
+            Map.entry("provisionStatus", "제3자 제공 여부"),
+            Map.entry("encryptionStatus", "암호화 현황"),
+            Map.entry("systemStatus", "개인정보처리시스템"),
+            Map.entry("overseasTransferStatus", "국외 이전 여부"),
+            Map.entry("collectionPurposes", "수집 목적"),
+            Map.entry("collectionMethods", "수집 방법"),
+            Map.entry("personalDataItems", "수집 항목"),
+            Map.entry("sensitiveDataTypes", "민감정보 유형")
+    );
 
     private static final Pattern EMP_PATTERN = Pattern.compile(
             "(?:직원|사원|임직원|알바(?:생)?)\\s*(\\d+)\\s*명|" +
@@ -68,10 +87,10 @@ public class ChatService {
     }
 
     @Transactional
-    public Conversation createConversation(UUID userId, String title) {
+    public Conversation createConversation(UUID userId, String title, String conversationType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
-        return conversationRepository.save(Conversation.create(user, title));
+        return conversationRepository.save(Conversation.create(user, title, conversationType));
     }
 
     @Transactional
@@ -99,6 +118,10 @@ public class ChatService {
                 .orElseThrow(() -> new ResourceNotFoundException("대화를 찾을 수 없습니다."));
         if (!conv.getUser().getId().equals(userId)) {
             throw new SecurityException("접근 권한이 없습니다.");
+        }
+
+        if ("PROFILE_FILL".equals(conv.getConversationType())) {
+            return handleProfileFillMessage(conv, userId, userMessage);
         }
 
         // 현재 메시지 저장 전에 이력 조회 (중복 포함 방지)
@@ -232,6 +255,80 @@ public class ChatService {
             log.warn("profile_suggestion 이벤트 직렬화 실패", e);
             return null;
         }
+    }
+
+    private Flux<String> handleProfileFillMessage(Conversation conv, UUID userId, String userMessage) {
+        List<Message> history = messageRepository.findByConversationIdOrderByCreatedAtAsc(conv.getId());
+        boolean isFirstMessage = history.isEmpty();
+        messageRepository.save(Message.ofUser(conv, userMessage));
+
+        com.pipai.domain.CompanyProfile profile = profileService.findProfile(userId).orElse(null);
+        Flux<String> textStream = ragPipeline.getLlmService().streamProfileFillAnswer(userMessage, profile, history);
+
+        StringBuilder accumulator = new StringBuilder();
+
+        return textStream
+                .doOnNext(accumulator::append)
+                .doOnComplete(() -> {
+                    String fullResponse = accumulator.toString();
+                    if (!fullResponse.isBlank()) {
+                        messageRepository.save(Message.ofAssistant(conv, fullResponse, null));
+                    }
+                    if (isFirstMessage) generateTitleAsync(conv.getId(), userMessage);
+                })
+                .concatWith(Flux.defer(() ->
+                        ragPipeline.getLlmService().extractProfileFields(userMessage, history)
+                                .flatMapMany(extracted -> {
+                                    if (extracted.isEmpty()) return Flux.empty();
+                                    var currentProfile = profileService.findProfile(userId).orElse(null);
+                                    Map<String, String> toApply = new HashMap<>();
+                                    extracted.forEach((field, value) -> {
+                                        if (isFieldEmpty(currentProfile, field)) toApply.put(field, value);
+                                    });
+                                    if (toApply.isEmpty()) return Flux.empty();
+                                    try {
+                                        profileService.patchFieldBatch(userId, toApply);
+                                        int percent = calculateCompletionPercent(userId);
+                                        List<Map<String, String>> savedFields = toApply.entrySet().stream()
+                                                .map(e -> Map.of(
+                                                        "field", e.getKey(),
+                                                        "label", FIELD_LABELS.getOrDefault(e.getKey(), e.getKey()),
+                                                        "value", e.getValue(),
+                                                        "displayValue", e.getValue()
+                                                ))
+                                                .collect(Collectors.toList());
+                                        Map<String, Object> content = new HashMap<>();
+                                        content.put("savedFields", savedFields);
+                                        content.put("profileCompletionPercent", percent);
+                                        String event = objectMapper.writeValueAsString(
+                                                Map.of("type", "profile_fields_saved", "content", content));
+                                        log.info("프로필 자동 저장 (userId={}, fields={})", userId, toApply.keySet());
+                                        return Flux.just(event);
+                                    } catch (Exception e) {
+                                        log.warn("profile_fields_saved 이벤트 생성 실패: {}", e.getMessage());
+                                        return Flux.empty();
+                                    }
+                                })
+                ));
+    }
+
+    private int calculateCompletionPercent(UUID userId) {
+        var opt = profileService.findProfile(userId);
+        if (opt.isEmpty()) return 0;
+        var p = opt.get();
+        int filled = 0;
+        if (p.getBusinessType() != null && !p.getBusinessType().isBlank()) filled++;
+        if (p.getEmployeeCount() != null) filled++;
+        if (p.getAnnualRevenue() != null && !p.getAnnualRevenue().isBlank()) filled++;
+        if (p.getHasPrivacyPolicy() != null) filled++;
+        if (p.getDelegationStatus() != null && !p.getDelegationStatus().isBlank()) filled++;
+        if (p.getCctvOperationStatus() != null && !p.getCctvOperationStatus().isBlank()) filled++;
+        if (p.getMarketingStatus() != null && !p.getMarketingStatus().isBlank()) filled++;
+        if (p.getProvisionStatus() != null && !p.getProvisionStatus().isBlank()) filled++;
+        if (p.getEncryptionStatus() != null && !p.getEncryptionStatus().isBlank()) filled++;
+        if (p.getSystemStatus() != null && !p.getSystemStatus().isBlank()) filled++;
+        if (p.getOverseasTransferStatus() != null && !p.getOverseasTransferStatus().isBlank()) filled++;
+        return (int) ((double) filled / 11 * 100);
     }
 
     private void extractAndApplyProfileFieldsAsync(UUID userId, String userMessage, List<Message> history) {

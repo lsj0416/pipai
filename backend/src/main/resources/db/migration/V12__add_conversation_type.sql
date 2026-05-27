@@ -1,0 +1,2 @@
+ALTER TABLE conversations
+  ADD COLUMN IF NOT EXISTS conversation_type VARCHAR(30) NOT NULL DEFAULT 'GENERAL';

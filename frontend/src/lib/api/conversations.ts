@@ -37,6 +37,14 @@ export interface SSEProfileSuggestionEvent {
   };
 }
 
+export interface SSEProfileFieldsSavedEvent {
+  type: 'profile_fields_saved';
+  content: {
+    savedFields: { field: string; label: string; value: string; displayValue: string }[];
+    profileCompletionPercent: number;
+  };
+}
+
 export interface SSEDoneEvent {
   type: 'done';
 }
@@ -52,6 +60,7 @@ export type SSEEvent =
   | SSECaseRefEvent
   | SSEChecklistEvent
   | SSEProfileSuggestionEvent
+  | SSEProfileFieldsSavedEvent
   | SSEDoneEvent
   | SSEErrorEvent;
 
@@ -93,6 +102,7 @@ export async function listConversations(
 export interface ConversationData {
   id: string;
   title: string;
+  conversationType?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,11 +110,12 @@ export interface ConversationData {
 export async function createConversation(
   token: string,
   title: string,
+  conversationType?: string,
 ): Promise<ApiResponse<ConversationData>> {
   return apiRequest<ConversationData>('/api/conversations', {
     method: 'POST',
     token,
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, conversationType }),
   });
 }
 
