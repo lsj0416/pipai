@@ -775,6 +775,44 @@ export default function MyPage() {
             </label>
           ))}
         </div>
+        {(form.s4_methods.includes('오프라인 서면 작성') || form.s4_methods.includes('이메일·메신저')) && (
+          <div style={{ ...subIndent, marginTop: 10 }}>
+            <div style={fieldWrap}>
+              <label style={labelStyle}>거래처 명함·연락처 정보 DB 등록 여부</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {['등록하지 않음', '사내 DB·CRM에 등록함', '엑셀 등 파일로만 관리', '모르겠음'].map(v => (
+                  <label key={v} style={radioLabel}>
+                    <input type="radio" name="b07Registration" value={v}
+                      checked={form.s4_b07_registration === v}
+                      onChange={() => set({ s4_b07_registration: v, ...(v !== '사내 DB·CRM에 등록함' ? { s4_b07_retention: '' } : {}) })} />
+                    {v}
+                  </label>
+                ))}
+                {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gok-blue)', background: 'var(--bg-tint-blue)', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                    ℹ 개인정보처리자로서 법적 의무(처리방침 게시, 정보주체 동의 획득, 보유기간 설정 등)가 적용됩니다.
+                  </div>
+                )}
+              </div>
+            </div>
+            {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
+              <div style={{ marginBottom: 0 }}>
+                <label style={labelStyle}>거래 종료 후 거래처 정보 처리 방법</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {['거래 종료 즉시 파기', '일정 기간 보관 후 파기', '계속 보관 중', '모르겠음'].map(v => (
+                    <label key={v} style={radioLabel}>
+                      <input type="radio" name="b07Retention" value={v}
+                        checked={form.s4_b07_retention === v}
+                        onChange={() => set({ s4_b07_retention: v })} />
+                      {v}
+                      {v === '계속 보관 중' && form.s4_b07_retention === v && <WarnBadge text="보유기간 설정 권장" />}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={fieldWrap}>
@@ -801,6 +839,38 @@ export default function MyPage() {
                   </div>
                 </div>
               )}
+              {v === '채용·인사 관리' && form.s4_purposes.includes(v) && (
+                <div style={{ ...subIndent, marginTop: 6 }}>
+                  <div style={fieldWrap}>
+                    <label style={labelStyle}>이력서·인사서류 보관 기간</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {['채용 후 즉시 파기', '6개월 미만 보관 후 파기', '6개월~1년 보관 후 파기', '1년 이상 보관', '별도 관리 없음'].map(rv => (
+                        <label key={rv} style={radioLabel}>
+                          <input type="radio" name="b06Retention" value={rv}
+                            checked={form.s4_b06_retention === rv}
+                            onChange={() => set({ s4_b06_retention: rv })} />
+                          {rv}
+                          {rv === '별도 관리 없음' && form.s4_b06_retention === rv && <WarnBadge text="확인 필요" />}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 0 }}>
+                    <label style={labelStyle}>퇴사자 개인정보 파기 시점</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {['퇴직 즉시 파기', '일정 기간 보관 후 파기 (법령 근거)', '보관 중 (파기 계획 없음)', '모르겠음'].map(rv => (
+                        <label key={rv} style={radioLabel}>
+                          <input type="radio" name="b06ExitTiming" value={rv}
+                            checked={form.s4_b06_exitTiming === rv}
+                            onChange={() => set({ s4_b06_exitTiming: rv })} />
+                          {rv}
+                          {rv === '보관 중 (파기 계획 없음)' && form.s4_b06_exitTiming === rv && <WarnBadge text="위반 가능성" />}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -818,95 +888,22 @@ export default function MyPage() {
             </label>
           ))}
         </div>
+        {form.s4_b08_policy === '보유기간을 항목별로 관리하고 있음' && (
+          <div style={{ ...subIndent, marginTop: 10 }}>
+            <label style={labelStyle}>파기 방법</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['완전파괴 (소각·파쇄)', '전용 소자장비 이용', '삭제', '덮어쓰기·초기화', '마스킹·구멍 뚫기 (부분 파기)', '별도 방법 없음'].map(v => (
+                <label key={v} style={checkLabel}>
+                  <input type="checkbox" checked={form.s4_b08_methods.includes(v)}
+                    onChange={() => set({ s4_b08_methods: toggle(form.s4_b08_methods, v) })} />
+                  {v}
+                  {v === '별도 방법 없음' && form.s4_b08_methods.includes(v) && <WarnBadge text="위반 가능성" />}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {form.s4_b08_policy === '보유기간을 항목별로 관리하고 있음' && (
-        <div style={subIndent}>
-          <label style={labelStyle}>파기 방법</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {['완전파괴 (소각·파쇄)', '전용 소자장비 이용', '삭제', '덮어쓰기·초기화', '마스킹·구멍 뚫기 (부분 파기)', '별도 방법 없음'].map(v => (
-              <label key={v} style={checkLabel}>
-                <input type="checkbox" checked={form.s4_b08_methods.includes(v)}
-                  onChange={() => set({ s4_b08_methods: toggle(form.s4_b08_methods, v) })} />
-                {v}
-                {v === '별도 방법 없음' && form.s4_b08_methods.includes(v) && <WarnBadge text="위반 가능성" />}
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {form.s4_purposes.includes('채용·인사 관리') && (
-        <div style={subIndent}>
-          <div style={fieldWrap}>
-            <label style={labelStyle}>이력서·인사서류 보관 기간</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {['채용 후 즉시 파기', '6개월 미만 보관 후 파기', '6개월~1년 보관 후 파기', '1년 이상 보관', '별도 관리 없음'].map(v => (
-                <label key={v} style={radioLabel}>
-                  <input type="radio" name="b06Retention" value={v}
-                    checked={form.s4_b06_retention === v}
-                    onChange={() => set({ s4_b06_retention: v })} />
-                  {v}
-                  {v === '별도 관리 없음' && form.s4_b06_retention === v && <WarnBadge text="확인 필요" />}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div style={{ marginBottom: 0 }}>
-            <label style={labelStyle}>퇴사자 개인정보 파기 시점</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {['퇴직 즉시 파기', '일정 기간 보관 후 파기 (법령 근거)', '보관 중 (파기 계획 없음)', '모르겠음'].map(v => (
-                <label key={v} style={radioLabel}>
-                  <input type="radio" name="b06ExitTiming" value={v}
-                    checked={form.s4_b06_exitTiming === v}
-                    onChange={() => set({ s4_b06_exitTiming: v })} />
-                  {v}
-                  {v === '보관 중 (파기 계획 없음)' && form.s4_b06_exitTiming === v && <WarnBadge text="위반 가능성" />}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {(form.s4_methods.includes('오프라인 서면 작성') || form.s4_methods.includes('이메일·메신저')) && (
-        <div style={subIndent}>
-          <div style={fieldWrap}>
-            <label style={labelStyle}>거래처 명함·연락처 정보 DB 등록 여부</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {['등록하지 않음', '사내 DB·CRM에 등록함', '엑셀 등 파일로만 관리', '모르겠음'].map(v => (
-                <label key={v} style={radioLabel}>
-                  <input type="radio" name="b07Registration" value={v}
-                    checked={form.s4_b07_registration === v}
-                    onChange={() => set({ s4_b07_registration: v, ...(v !== '사내 DB·CRM에 등록함' ? { s4_b07_retention: '' } : {}) })} />
-                  {v}
-                </label>
-              ))}
-              {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gok-blue)', background: 'var(--bg-tint-blue)', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
-                  ℹ 개인정보처리자로서 법적 의무(처리방침 게시, 정보주체 동의 획득, 보유기간 설정 등)가 적용됩니다.
-                </div>
-              )}
-            </div>
-          </div>
-          {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
-            <div style={{ marginBottom: 0 }}>
-              <label style={labelStyle}>거래 종료 후 거래처 정보 처리 방법</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {['거래 종료 즉시 파기', '일정 기간 보관 후 파기', '계속 보관 중', '모르겠음'].map(v => (
-                  <label key={v} style={radioLabel}>
-                    <input type="radio" name="b07Retention" value={v}
-                      checked={form.s4_b07_retention === v}
-                      onChange={() => set({ s4_b07_retention: v })} />
-                    {v}
-                    {v === '계속 보관 중' && form.s4_b07_retention === v && <WarnBadge text="보유기간 설정 권장" />}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </>
   );
 
@@ -1360,10 +1357,23 @@ export default function MyPage() {
         </div>
         {form.s7_policy === 'yes' && (
           <div style={{ ...subIndent, marginTop: 8 }}>
-            <label style={labelStyle}>게시 위치 (URL 또는 매장 게시)</label>
-            <input style={inputStyle} value={form.s7_policyUrl}
-              onChange={e => set({ s7_policyUrl: e.target.value })}
-              placeholder="https://example.com/privacy 또는 '매장 입구 게시'" />
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>게시 위치 (URL 또는 매장 게시)</label>
+              <input style={inputStyle} value={form.s7_policyUrl}
+                onChange={e => set({ s7_policyUrl: e.target.value })}
+                placeholder="https://example.com/privacy 또는 '매장 입구 게시'" />
+            </div>
+            <label style={labelStyle}>처리방침 필수 기재사항 포함 여부</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['처리 목적·수집 항목·보유기간', '제3자 제공 현황 (해당 시)', '위탁 현황 (해당 시)', 'CPO 성명·연락처', '정보주체 권리·행사 방법', '자동 수집 장치 설치·운영 (해당 시)', '파기 절차·방법'].map(v => (
+                <label key={v} style={checkLabel}>
+                  <input type="checkbox" checked={form.s7_b09_items.includes(v)}
+                    onChange={() => set({ s7_b09_items: toggle(form.s7_b09_items, v) })} />
+                  {v}
+                  {!form.s7_b09_items.includes(v) && <WarnBadge text="보완 필요" />}
+                </label>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1439,27 +1449,26 @@ export default function MyPage() {
             </label>
           ))}
         </div>
-      </div>
-
-      {form.s7_encryption === '일부만 암호화' && (
-        <div style={subIndent}>
-          <label style={labelStyle}>암호화 적용 항목</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호', '운전면허·외국인등록·여권번호', '생체인식정보', '일반 회원정보 (이름·연락처 등)', '암호화 항목 없음'].map(v => {
-              const isMandatory = ['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호'].includes(v);
-              return (
-                <label key={v} style={checkLabel}>
-                  <input type="checkbox" checked={form.s7_b03_items.includes(v)}
-                    onChange={() => set({ s7_b03_items: toggle(form.s7_b03_items, v) })} />
-                  {v}
-                  {isMandatory && !form.s7_b03_items.includes(v) && <WarnBadge text="필수 암호화" />}
-                  {v === '암호화 항목 없음' && form.s7_b03_items.includes(v) && <WarnBadge text="위반" />}
-                </label>
-              );
-            })}
+        {form.s7_encryption === '일부만 암호화' && (
+          <div style={{ ...subIndent, marginTop: 10 }}>
+            <label style={labelStyle}>암호화 적용 항목</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호', '운전면허·외국인등록·여권번호', '생체인식정보', '일반 회원정보 (이름·연락처 등)', '암호화 항목 없음'].map(v => {
+                const isMandatory = ['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호'].includes(v);
+                return (
+                  <label key={v} style={checkLabel}>
+                    <input type="checkbox" checked={form.s7_b03_items.includes(v)}
+                      onChange={() => set({ s7_b03_items: toggle(form.s7_b03_items, v) })} />
+                    {v}
+                    {isMandatory && !form.s7_b03_items.includes(v) && <WarnBadge text="필수 암호화" />}
+                    {v === '암호화 항목 없음' && form.s7_b03_items.includes(v) && <WarnBadge text="위반" />}
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {(form.s6_system === '보유함 (CRM, ERP, 회원관리 시스템 등)') && (
         <div style={fieldWrap}>
@@ -1517,21 +1526,6 @@ export default function MyPage() {
         </div>
       )}
 
-      {form.s7_policy === 'yes' && (
-        <div style={subIndent}>
-          <label style={labelStyle}>처리방침 필수 기재사항 포함 여부</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {['처리 목적·수집 항목·보유기간', '제3자 제공 현황 (해당 시)', '위탁 현황 (해당 시)', 'CPO 성명·연락처', '정보주체 권리·행사 방법', '자동 수집 장치 설치·운영 (해당 시)', '파기 절차·방법'].map(v => (
-              <label key={v} style={checkLabel}>
-                <input type="checkbox" checked={form.s7_b09_items.includes(v)}
-                  onChange={() => set({ s7_b09_items: toggle(form.s7_b09_items, v) })} />
-                {v}
-                {!form.s7_b09_items.includes(v) && <WarnBadge text="보완 필요" />}
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 
