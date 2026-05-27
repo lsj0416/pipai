@@ -114,11 +114,13 @@ export interface DiagnosisInfo {
 }
 
 export interface InquiryDraft {
+  id: string;
   recipient: string;
   title: string;
   biz: BusinessInfo;
   body: string;
   diagnosis: DiagnosisInfo;
+  updatedAt?: string;
 }
 
 // ── RiskPanel 전용 ────────────────────────────────────────────────────────────

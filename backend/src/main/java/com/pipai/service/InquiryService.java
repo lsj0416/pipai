@@ -96,6 +96,26 @@ public class InquiryService {
         return inquiryDraftRepository.save(InquiryDraft.create(user, conv, subject, content, relatedLaws, precedent));
     }
 
+    public List<InquiryDraft> listByUser(UUID userId) {
+        return inquiryDraftRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+    }
+
+    public InquiryDraft getById(UUID userId, UUID id) {
+        InquiryDraft draft = inquiryDraftRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("문의글을 찾을 수 없습니다."));
+        if (!draft.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다.");
+        }
+        return draft;
+    }
+
+    @Transactional
+    public InquiryDraft update(UUID userId, UUID id, String subject, String content) {
+        InquiryDraft draft = getById(userId, id);
+        draft.updateContent(subject, content, draft.getRelatedLaws(), draft.getPrecedent());
+        return inquiryDraftRepository.save(draft);
+    }
+
     private String buildConversationText(List<Message> messages) {
         StringBuilder sb = new StringBuilder();
         for (Message msg : messages) {

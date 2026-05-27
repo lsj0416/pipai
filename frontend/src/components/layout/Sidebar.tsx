@@ -6,6 +6,7 @@ import Logo from '@/components/Logo';
 import type { NavId, RiskMiniItem, SeverityActive, UserData, UserBusiness } from '@/lib/types';
 import { logout } from '@/lib/api/auth';
 import { listConversations, deleteConversation, type ConversationListItem } from '@/lib/api/conversations';
+import { listInquiries, type BackendInquiryDraft } from '@/lib/api/inquiry';
 import { getRisks } from '@/lib/api/dashboard';
 
 interface SidebarProps {
@@ -86,6 +87,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [inquiries, setInquiries] = useState<BackendInquiryDraft[]>([]);
   const [localRiskItems, setLocalRiskItems] = useState<RiskMiniItem[]>(riskItems);
   const [hoveredConvId, setHoveredConvId] = useState<string | null>(null);
 
@@ -127,15 +129,28 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
       .catch(() => {});
   };
 
+  const loadInquiries = () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    listInquiries(token)
+      .then(res => {
+        if (res.success && res.data) setInquiries(res.data.slice(0, 3));
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     loadConversations();
-   
+    loadInquiries();
   }, [pathname]);
 
   useEffect(() => {
     window.addEventListener('conversationUpdate', loadConversations);
-    return () => window.removeEventListener('conversationUpdate', loadConversations);
-   
+    window.addEventListener('inquiryUpdate', loadInquiries);
+    return () => {
+      window.removeEventListener('conversationUpdate', loadConversations);
+      window.removeEventListener('inquiryUpdate', loadInquiries);
+    };
   }, []);
 
   async function handleLogout() {
@@ -239,6 +254,41 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
                   </button>
                 )}
               </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* 저장된 문의글 */}
+      {inquiries.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', padding: '14px 22px 4px' }}>저장된 문의글</div>
+          {inquiries.map(inq => {
+            const isActive = pathname === '/inquiry' && typeof window !== 'undefined'
+              && new URLSearchParams(window.location.search).get('id') === inq.id;
+            return (
+              <button
+                key={inq.id}
+                onClick={() => router.push(`/inquiry?id=${inq.id}`)}
+                style={{
+                  width: 'calc(100% - 16px)', margin: '0 8px', textAlign: 'left',
+                  padding: '8px 14px', borderRadius: 8, border: 'none',
+                  background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: 'white', fontSize: 12, fontFamily: 'var(--font-body)',
+                  fontWeight: 400, cursor: 'pointer', letterSpacing: '-0.01em',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/>
+                  </svg>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.85 }}>
+                    {inq.subject}
+                  </span>
+                </div>
+              </button>
             );
           })}
         </>

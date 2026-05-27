@@ -24,3 +24,29 @@ export async function generateInquiry(
     { method: 'POST', token },
   );
 }
+
+export async function listInquiries(
+  token: string,
+): Promise<ApiResponse<BackendInquiryDraft[]>> {
+  return apiRequest<BackendInquiryDraft[]>('/api/inquiry/list', { token });
+}
+
+export async function getInquiry(
+  token: string,
+  id: string,
+): Promise<ApiResponse<BackendInquiryDraft>> {
+  return apiRequest<BackendInquiryDraft>(`/api/inquiry/${id}`, { token });
+}
+
+export async function updateInquiry(
+  token: string,
+  id: string,
+  subject: string,
+  content: string,
+): Promise<ApiResponse<BackendInquiryDraft>> {
+  return apiRequest<BackendInquiryDraft>(`/api/inquiry/${id}`, {
+    method: 'PUT',
+    token,
+    body: JSON.stringify({ subject, content }),
+  });
+}

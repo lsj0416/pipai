@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import type { InquiryDraft } from '@/lib/types';
+import { updateInquiry } from '@/lib/api/inquiry';
 
 interface InquiryGenProps {
   draft: InquiryDraft;
@@ -26,6 +28,27 @@ function KV({ k, v }: { k: string; v: React.ReactNode }) {
 }
 
 export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
+  const [title, setTitle] = useState(draft.title);
+  const [body, setBody] = useState(draft.body);
+  const [saveLabel, setSaveLabel] = useState('임시저장');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    const token = localStorage.getItem('accessToken');
+    if (!token || !draft.id) return;
+    setSaving(true);
+    try {
+      await updateInquiry(token, draft.id, title, body);
+      setSaveLabel('저장됨 ✓');
+      setTimeout(() => setSaveLabel('임시저장'), 2000);
+    } catch {
+      setSaveLabel('저장 실패');
+      setTimeout(() => setSaveLabel('임시저장'), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div style={{ padding: '24px 32px 48px', overflowY: 'auto', height: '100%', maxWidth: 820, margin: '0 auto' }}>
       <button onClick={onBack} style={{
@@ -36,18 +59,22 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
       }}>← 대화로 돌아가기</button>
 
       <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>전문가 문의글</div>
-      <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4, marginBottom: 22 }}>대화 내용을 바탕으로 자동 정리해 드렸어요. 보내기 전 확인해 주세요.</div>
+      <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4, marginBottom: 22 }}>대화 내용을 바탕으로 자동 정리해 드렸어요. 내용을 확인하고 임시저장하세요.</div>
 
       <div style={{ background: 'white', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '22px 24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '8px 16px', fontSize: 14, paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ color: 'var(--fg-3)' }}>수신</div>
           <div style={{ color: 'var(--fg-1)' }}>{draft.recipient}</div>
           <div style={{ color: 'var(--fg-3)' }}>제목</div>
-          <input defaultValue={draft.title} style={{
-            border: 'none', outline: 'none', fontFamily: 'var(--font-body)',
-            fontSize: 15, fontWeight: 600, color: 'var(--fg-1)',
-            letterSpacing: '-0.01em', padding: 0, background: 'transparent', width: '100%',
-          }} />
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            style={{
+              border: 'none', outline: 'none', fontFamily: 'var(--font-body)',
+              fontSize: 15, fontWeight: 600, color: 'var(--fg-1)',
+              letterSpacing: '-0.01em', padding: 0, background: 'transparent', width: '100%',
+            }}
+          />
         </div>
 
         <Section title="■ 사업자 정보">
@@ -58,24 +85,56 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
         </Section>
 
         <Section title="■ 현황 및 문의 사항">
-          <textarea defaultValue={draft.body} style={{
-            width: '100%', minHeight: 100, resize: 'vertical',
-            fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.7,
-            color: 'var(--fg-1)', padding: '10px 12px',
-            border: '1px solid var(--border-subtle)', borderRadius: 8,
-            outline: 'none', letterSpacing: '-0.01em', background: 'var(--bg-subtle)',
-          }} />
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            style={{
+              width: '100%', minHeight: 100, resize: 'vertical',
+              fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.7,
+              color: 'var(--fg-1)', padding: '10px 12px',
+              border: '1px solid var(--border-subtle)', borderRadius: 8,
+              outline: 'none', letterSpacing: '-0.01em', background: 'var(--bg-subtle)',
+            }}
+          />
         </Section>
 
-        <Section title="■ AI 진단 결과" last>
+        <Section title="■ AI 진단 결과">
           <KV k="수집 동의 절차" v={<span style={{ color: 'var(--gok-red)', fontWeight: 600 }}>{draft.diagnosis.status}</span>} />
           <KV k="관련 조항"      v={<span style={{ color: 'var(--gok-blue)', fontWeight: 600 }}>{draft.diagnosis.law}</span>} />
           <KV k="유사 처분 사례" v={draft.diagnosis.precedent} />
         </Section>
 
+        {/* 전문가 연락처 */}
+        <Section title="■ 전문가 연락처" last>
+          <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)' }}>개인정보보호위원회 기술지원 컨설팅</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>📞 (국번없이) 182</div>
+              <a
+                href="https://www.privacy.go.kr/front/business/consltRequestList.do"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 13, color: 'var(--gok-blue)', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                🌐 개인정보보호 포털 → 기술지원 컨설팅 신청
+              </a>
+            </div>
+          </div>
+        </Section>
+
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-          <button style={{ background: 'white', border: '1px solid var(--border-default)', color: 'var(--fg-1)', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>임시저장</button>
-          <button style={{ background: 'var(--gok-blue)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>전문가에게 보내기 →</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              background: 'white', border: '1px solid var(--border-default)', color: 'var(--fg-1)',
+              padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              cursor: saving ? 'default' : 'pointer', fontFamily: 'var(--font-body)',
+              whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saveLabel}
+          </button>
         </div>
       </div>
     </div>

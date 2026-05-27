@@ -81,14 +81,7 @@ function ChatPageContent() {
         .catch(() => {})
         .finally(() => { if (!cancelled) setLoading(false); });
     } else {
-      createConversation(token, '개인정보보호 리스크 진단')
-        .then(res => {
-          if (!cancelled && res.success && res.data) {
-            conversationIdRef.current = res.data.id;
-            setConvId(res.data.id);
-          }
-        })
-        .catch(() => {});
+      setLoading(false);
     }
 
     return () => { cancelled = true; };
