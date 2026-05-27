@@ -53,6 +53,15 @@ public class ProfileController {
         ProfileDto.CloudHosting cloud = req.cloudHosting() != null ? req.cloudHosting() : new ProfileDto.CloudHosting(null, null);
         ProfileDto.CctvControls cctv = req.cctvControls() != null ? req.cctvControls() : new ProfileDto.CctvControls(null, null);
         ProfileDto.SecurityControls security = req.securityControls() != null ? req.securityControls() : new ProfileDto.SecurityControls(null, null, null, null);
+        ProfileDto.CpoInfo cpoInfo = req.cpoInfo() != null ? req.cpoInfo() : new ProfileDto.CpoInfo(null, null);
+        ProfileDto.OperatingInfo operatingInfo = req.operatingInfo() != null ? req.operatingInfo() : new ProfileDto.OperatingInfo(null, null);
+        ProfileDto.DelegationContracts delegationContracts = req.delegationContracts() != null ? req.delegationContracts() : new ProfileDto.DelegationContracts(null);
+        ProfileDto.MarketingInfo marketingInfo = req.marketingInfo() != null ? req.marketingInfo() : new ProfileDto.MarketingInfo(null, null, null);
+        ProfileDto.CctvAdditional cctvAdditional = req.cctvAdditional() != null ? req.cctvAdditional() : new ProfileDto.CctvAdditional(null, null);
+        ProfileDto.AccessLogInfo accessLogInfo = req.accessLogInfo() != null ? req.accessLogInfo() : new ProfileDto.AccessLogInfo(null);
+        ProfileDto.JuminInfo juminInfo = req.juminInfo() != null ? req.juminInfo() : new ProfileDto.JuminInfo(null);
+        ProfileDto.ProvisionInfo provisionInfo = req.provisionInfo() != null ? req.provisionInfo() : new ProfileDto.ProvisionInfo(null, null);
+        ProfileDto.InternalPlanInfo internalPlanInfo = req.internalPlanInfo() != null ? req.internalPlanInfo() : new ProfileDto.InternalPlanInfo(null, null);
 
         return new ProfileService.ProfileData(
                 overview.businessType(),
@@ -87,7 +96,23 @@ public class ProfileController {
                 security.encryptedDataItems(),
                 security.accessControlSeparation(),
                 security.retiredAccessRevocation(),
-                security.accessChangeHistoryStatus()
+                security.accessChangeHistoryStatus(),
+                cpoInfo.status(),
+                cpoInfo.title(),
+                operatingInfo.channels(),
+                operatingInfo.privacyPolicyUrl(),
+                delegationContracts.contractPerType(),
+                marketingInfo.status(),
+                marketingInfo.consentType(),
+                marketingInfo.nightSend(),
+                cctvAdditional.signageStatus(),
+                cctvAdditional.range(),
+                accessLogInfo.status(),
+                juminInfo.collectionGround(),
+                provisionInfo.status(),
+                provisionInfo.consentStatus(),
+                internalPlanInfo.status(),
+                internalPlanInfo.cycle()
         );
     }
 }

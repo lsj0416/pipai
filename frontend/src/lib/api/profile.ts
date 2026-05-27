@@ -60,6 +60,16 @@ export interface ProfileSecurityControls {
   accessChangeHistoryStatus: string | null;
 }
 
+export interface ProfileCpoInfo { status: string | null; title: string | null; }
+export interface ProfileOperatingInfo { channels: string | null; privacyPolicyUrl: string | null; }
+export interface ProfileDelegationContracts { contractPerType: string | null; }
+export interface ProfileMarketingInfo { status: string | null; consentType: string | null; nightSend: string | null; }
+export interface ProfileCctvAdditional { signageStatus: string | null; range: string | null; }
+export interface ProfileAccessLogInfo { status: string | null; }
+export interface ProfileJuminInfo { collectionGround: string | null; }
+export interface ProfileProvisionInfo { status: string | null; consentStatus: string | null; }
+export interface ProfileInternalPlanInfo { status: string | null; cycle: string | null; }
+
 export interface Profile {
   id: string;
   overview: ProfileOverview;
@@ -71,6 +81,15 @@ export interface Profile {
   cloudHosting: ProfileCloudHosting;
   cctvControls: ProfileCctvControls;
   securityControls: ProfileSecurityControls;
+  cpoInfo: ProfileCpoInfo;
+  operatingInfo: ProfileOperatingInfo;
+  delegationContracts: ProfileDelegationContracts;
+  marketingInfo: ProfileMarketingInfo;
+  cctvAdditional: ProfileCctvAdditional;
+  accessLogInfo: ProfileAccessLogInfo;
+  juminInfo: ProfileJuminInfo;
+  provisionInfo: ProfileProvisionInfo;
+  internalPlanInfo: ProfileInternalPlanInfo;
   updatedAt: string;
 }
 
@@ -84,6 +103,15 @@ export interface ProfileUpsertRequest {
   cloudHosting: ProfileCloudHosting;
   cctvControls: ProfileCctvControls;
   securityControls: ProfileSecurityControls;
+  cpoInfo: ProfileCpoInfo;
+  operatingInfo: ProfileOperatingInfo;
+  delegationContracts: ProfileDelegationContracts;
+  marketingInfo: ProfileMarketingInfo;
+  cctvAdditional: ProfileCctvAdditional;
+  accessLogInfo: ProfileAccessLogInfo;
+  juminInfo: ProfileJuminInfo;
+  provisionInfo: ProfileProvisionInfo;
+  internalPlanInfo: ProfileInternalPlanInfo;
 }
 
 type LegacyProfile = {
@@ -132,6 +160,15 @@ const EMPTY_PROFILE: Profile = {
     retiredAccessRevocation: null,
     accessChangeHistoryStatus: null,
   },
+  cpoInfo: { status: null, title: null },
+  operatingInfo: { channels: null, privacyPolicyUrl: null },
+  delegationContracts: { contractPerType: null },
+  marketingInfo: { status: null, consentType: null, nightSend: null },
+  cctvAdditional: { signageStatus: null, range: null },
+  accessLogInfo: { status: null },
+  juminInfo: { collectionGround: null },
+  provisionInfo: { status: null, consentStatus: null },
+  internalPlanInfo: { status: null, cycle: null },
   updatedAt: '',
 };
 
@@ -171,6 +208,15 @@ function normalizeProfile(input: unknown): Profile | null {
     cloudHosting: { ...EMPTY_PROFILE.cloudHosting, ...data.cloudHosting },
     cctvControls: { ...EMPTY_PROFILE.cctvControls, ...data.cctvControls },
     securityControls: { ...EMPTY_PROFILE.securityControls, ...data.securityControls },
+    cpoInfo: { ...EMPTY_PROFILE.cpoInfo, ...data.cpoInfo },
+    operatingInfo: { ...EMPTY_PROFILE.operatingInfo, ...data.operatingInfo },
+    delegationContracts: { ...EMPTY_PROFILE.delegationContracts, ...data.delegationContracts },
+    marketingInfo: { ...EMPTY_PROFILE.marketingInfo, ...data.marketingInfo },
+    cctvAdditional: { ...EMPTY_PROFILE.cctvAdditional, ...data.cctvAdditional },
+    accessLogInfo: { ...EMPTY_PROFILE.accessLogInfo, ...data.accessLogInfo },
+    juminInfo: { ...EMPTY_PROFILE.juminInfo, ...data.juminInfo },
+    provisionInfo: { ...EMPTY_PROFILE.provisionInfo, ...data.provisionInfo },
+    internalPlanInfo: { ...EMPTY_PROFILE.internalPlanInfo, ...data.internalPlanInfo },
     id: data.id ?? '',
     updatedAt: data.updatedAt ?? '',
   };

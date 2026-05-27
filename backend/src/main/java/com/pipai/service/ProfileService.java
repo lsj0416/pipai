@@ -34,7 +34,13 @@ public class ProfileService {
                               String cloudServerLocation, String overseasServerCountry,
                               String cctvExternalProvision, String cctvAccessControl,
                               String encryptedDataItems, String accessControlSeparation,
-                              String retiredAccessRevocation, String accessChangeHistoryStatus) {}
+                              String retiredAccessRevocation, String accessChangeHistoryStatus,
+                              String cpoStatus, String cpoTitle, String operatingChannels, String privacyPolicyUrl,
+                              String contractPerType, String marketingStatus, String marketingConsentType,
+                              String marketingNightSend, String cctvSignageStatus, String cctvRange,
+                              String accessLogStatus, String juminCollectionGround,
+                              String provisionStatus, String provisionConsentStatus,
+                              String internalPlanStatus, String internalPlanCycle) {}
 
     @Transactional(readOnly = true)
     public CompanyProfile getProfile(UUID userId) {
@@ -82,7 +88,13 @@ public class ProfileService {
                     data.cloudServerLocation(), data.overseasServerCountry(),
                     data.cctvExternalProvision(), data.cctvAccessControl(),
                     data.encryptedDataItems(), data.accessControlSeparation(),
-                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus());
+                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus(),
+                    data.cpoStatus(), data.cpoTitle(), data.operatingChannels(), data.privacyPolicyUrl(),
+                    data.contractPerType(), data.marketingStatus(), data.marketingConsentType(),
+                    data.marketingNightSend(), data.cctvSignageStatus(), data.cctvRange(),
+                    data.accessLogStatus(), data.juminCollectionGround(),
+                    data.provisionStatus(), data.provisionConsentStatus(),
+                    data.internalPlanStatus(), data.internalPlanCycle());
             return existing;
         }).orElseGet(() -> {
             CompanyProfile newProfile = CompanyProfile.create(user);
@@ -99,7 +111,13 @@ public class ProfileService {
                     data.cloudServerLocation(), data.overseasServerCountry(),
                     data.cctvExternalProvision(), data.cctvAccessControl(),
                     data.encryptedDataItems(), data.accessControlSeparation(),
-                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus());
+                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus(),
+                    data.cpoStatus(), data.cpoTitle(), data.operatingChannels(), data.privacyPolicyUrl(),
+                    data.contractPerType(), data.marketingStatus(), data.marketingConsentType(),
+                    data.marketingNightSend(), data.cctvSignageStatus(), data.cctvRange(),
+                    data.accessLogStatus(), data.juminCollectionGround(),
+                    data.provisionStatus(), data.provisionConsentStatus(),
+                    data.internalPlanStatus(), data.internalPlanCycle());
             return profileRepository.save(newProfile);
         });
 

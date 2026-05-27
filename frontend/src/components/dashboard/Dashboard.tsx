@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { ChecklistRow, GrowthScenario, GrowthRowData, DashboardSummary, SeverityActive } from '@/lib/types';
+import type { ChecklistRow, GrowthScenario, GrowthRowData, DashboardSummary, Severity, SeverityActive } from '@/lib/types';
 
 interface DashboardProps {
   rows: ChecklistRow[];
@@ -28,7 +28,13 @@ const SUMMARY_COLORS: Record<SeverityActive, ColorMap> = {
   safe:   { bg: '#EEF3F8', border: '#CADAEB', accent: '#3F6E9A', text: '#003764' },
 };
 
-function SeverityPill({ severity }: { severity: SeverityActive }) {
+function SeverityPill({ severity }: { severity: Severity }) {
+  if (severity === 'exempt') {
+    return <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap', background: 'var(--bg-subtle)', color: 'var(--fg-3)', border: '1px solid var(--border-subtle)' }}>⚪ 해당없음</span>;
+  }
+  if (severity === 'pending') {
+    return <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap', background: '#F3F4F6', color: '#6B7280' }}>확인중</span>;
+  }
   const MAP: Record<SeverityActive, { bg: string; label: string }> = {
     high:   { bg: '#E4032E', label: '위험' },
     medium: { bg: '#E89B0F', label: '확인필요' },
@@ -125,22 +131,23 @@ export default function Dashboard({ rows, summary, growth, profileReady, onJumpT
             </div>
           )}
           {filteredRows.map((r, i) => (
-            <div key={i} onClick={() => onJumpToChat(r)}
+            <div key={i} onClick={() => r.severity !== 'exempt' && onJumpToChat(r)}
               style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1.6fr 1fr',
                 gap: 16, padding: '14px 22px', width: '100%', textAlign: 'left', background: 'white',
                 borderBottom: i < filteredRows.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                fontFamily: 'var(--font-body)', cursor: 'pointer', alignItems: 'center',
-                boxSizing: 'border-box',
+                fontFamily: 'var(--font-body)', cursor: r.severity === 'exempt' ? 'default' : 'pointer',
+                alignItems: 'center', boxSizing: 'border-box',
+                opacity: r.severity === 'exempt' ? 0.5 : 1,
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-subtle)'; }}
+              onMouseEnter={e => { if (r.severity !== 'exempt') (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-subtle)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'white'; }}
             >
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>{r.title}</div>
               <div><SeverityPill severity={r.severity} /></div>
               <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>{r.law}</div>
               <div>
-                {r.done ? (
+                {r.severity === 'exempt' ? null : r.done ? (
                   <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>
                     완료{r.resolvedAt ? ` · ${formatResolvedAt(r.resolvedAt)}` : ''}
                   </span>

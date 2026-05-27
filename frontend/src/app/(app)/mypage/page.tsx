@@ -374,7 +374,28 @@ export default function MyPage() {
             s7_b04_access: p.securityControls.accessControlSeparation ?? prev.s7_b04_access,
             s7_b04_retired: p.securityControls.retiredAccessRevocation ?? prev.s7_b04_retired,
             s7_b04_history: p.securityControls.accessChangeHistoryStatus ?? prev.s7_b04_history,
+            s7_cpo: p.cpoInfo.status ?? prev.s7_cpo,
+            s7_cpoTitle: p.cpoInfo.title ?? prev.s7_cpoTitle,
+            s6_channels: csvToArray(p.operatingInfo.channels ?? '').length > 0 ? csvToArray(p.operatingInfo.channels!) : prev.s6_channels,
+            s7_policyUrl: p.operatingInfo.privacyPolicyUrl ?? prev.s7_policyUrl,
+            s8_marketing: p.marketingInfo.status ?? prev.s8_marketing,
+            s8_consent: p.marketingInfo.consentType ?? prev.s8_consent,
+            s8_nightSend: p.marketingInfo.nightSend ?? prev.s8_nightSend,
+            s6_cctvSignage: p.cctvAdditional.signageStatus ?? prev.s6_cctvSignage,
+            s6_cctvRange: csvToArray(p.cctvAdditional.range ?? '').length > 0 ? csvToArray(p.cctvAdditional.range!) : prev.s6_cctvRange,
+            s7_accessLog: p.accessLogInfo.status ?? prev.s7_accessLog,
+            s4_juminGround: p.juminInfo.collectionGround ?? prev.s4_juminGround,
+            s5_provision: p.provisionInfo.status ?? prev.s5_provision,
+            s5_provisionConsent: p.provisionInfo.consentStatus ?? prev.s5_provisionConsent,
+            s7_internalPlan: p.internalPlanInfo.status ?? prev.s7_internalPlan,
+            s7_internalPlanCycle: p.internalPlanInfo.cycle ?? prev.s7_internalPlanCycle,
           };
+          if (p.delegationContracts.contractPerType) {
+            try {
+              const parsed = JSON.parse(p.delegationContracts.contractPerType) as Record<string, string>;
+              patch.s5_contractPerType = parsed;
+            } catch {}
+          }
           if (p.overview.personalDataItems) {
             const allItems = csvToArray(p.overview.personalDataItems);
             patch.s4_general = allItems.filter(x => !UNIQUE_ID_ITEMS.includes(x) && !CREDIT_ITEMS.includes(x) && !LOCATION_ITEMS.includes(x));
@@ -453,6 +474,17 @@ export default function MyPage() {
           retiredAccessRevocation: form.s7_b04_retired || null,
           accessChangeHistoryStatus: form.s7_b04_history || null,
         },
+        cpoInfo: { status: form.s7_cpo || null, title: form.s7_cpoTitle || null },
+        operatingInfo: { channels: form.s6_channels.join(',') || null, privacyPolicyUrl: form.s7_policyUrl || null },
+        delegationContracts: {
+          contractPerType: Object.keys(form.s5_contractPerType).length > 0 ? JSON.stringify(form.s5_contractPerType) : null,
+        },
+        marketingInfo: { status: form.s8_marketing || null, consentType: form.s8_consent || null, nightSend: form.s8_nightSend || null },
+        cctvAdditional: { signageStatus: form.s6_cctvSignage || null, range: form.s6_cctvRange.join(',') || null },
+        accessLogInfo: { status: form.s7_accessLog || null },
+        juminInfo: { collectionGround: form.s4_juminGround || null },
+        provisionInfo: { status: form.s5_provision || null, consentStatus: form.s5_provisionConsent || null },
+        internalPlanInfo: { status: form.s7_internalPlan || null, cycle: form.s7_internalPlanCycle || null },
       });
       localStorage.setItem('dashboardNeedsRefresh', 'true');
       setSavedMsg('저장되었어요!');

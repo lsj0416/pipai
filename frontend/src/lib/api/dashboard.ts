@@ -1,7 +1,7 @@
 import { apiRequest, type ApiResponse } from './client';
 
 // ── 백엔드 응답 타입 ──────────────────────────────────────────────────────────
-export type RiskLevel = 'IMMEDIATE' | 'CHECK_NEEDED' | 'GOOD';
+export type RiskLevel = 'IMMEDIATE' | 'CHECK_NEEDED' | 'GOOD' | 'EXEMPT';
 export type RiskSourceType = 'PROFILE' | 'CHAT';
 
 export interface BackendRiskItem {

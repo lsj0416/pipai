@@ -22,7 +22,9 @@ public class DashboardService {
     private final ProfileRepository profileRepository;
 
     private static final List<String> PROFILE_CODES = List.of(
-            "B-01", "B-02", "B-03", "B-04", "B-05", "B-06", "B-07", "B-08", "B-09", "B-10", "B-11"
+            "B-01", "B-02", "B-03", "B-04", "B-05", "B-06", "B-07", "B-08", "B-09", "B-10", "B-11",
+            "A-02", "A-04", "A-05", "A-06", "A-07", "A-08", "A-09", "A-11", "A-13",
+            "A-14", "A-16", "A-17", "A-19", "A-20", "A-21", "A-22", "A-25"
     );
 
     public record DashboardSummary(Map<String, Long> riskCounts, List<DashboardRiskItemDto> recentItems, boolean profileReady) {}
@@ -34,7 +36,7 @@ public class DashboardService {
         CompanyProfile profile = profileRepository.findByUserId(userId).orElse(null);
         List<RiskChecklistItem> items = getVisibleItems(userId);
         Map<String, Long> counts = items.stream()
-                .filter(item -> !item.isResolved())
+                .filter(item -> !item.isResolved() && item.getLevel() != RiskChecklistItem.RiskLevel.EXEMPT)
                 .collect(Collectors.groupingBy(i -> i.getLevel().name(), Collectors.counting()));
         return new DashboardSummary(
                 counts,

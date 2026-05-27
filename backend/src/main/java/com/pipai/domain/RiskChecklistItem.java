@@ -15,7 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RiskChecklistItem {
 
-    public enum RiskLevel { IMMEDIATE, CHECK_NEEDED, GOOD }
+    public enum RiskLevel { IMMEDIATE, CHECK_NEEDED, GOOD, EXEMPT }
     public enum SourceType { PROFILE, CHAT }
 
     @Id

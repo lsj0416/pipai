@@ -1,5 +1,5 @@
 // ── 기본 열거형 ──────────────────────────────────────────────────────────────
-export type Severity = 'high' | 'medium' | 'safe' | 'pending';
+export type Severity = 'high' | 'medium' | 'safe' | 'pending' | 'exempt';
 export type SeverityActive = 'high' | 'medium' | 'safe';
 export type NavId = 'conversations' | 'dash' | 'me' | 'inquiry';
 
@@ -75,7 +75,7 @@ export type ChatMessage = UserMsg | AssistantMsg | QuickMsg;
 export interface ChecklistRow {
   id?: string;
   title: string;
-  severity: SeverityActive;
+  severity: Severity;
   law: string;
   done: boolean;
   diagnosisCode?: string | null;

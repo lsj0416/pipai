@@ -10,6 +10,7 @@ const LEVEL_MAP: Record<RiskLevel, ChecklistRow['severity']> = {
   IMMEDIATE: 'high',
   CHECK_NEEDED: 'medium',
   GOOD: 'safe',
+  EXEMPT: 'exempt',
 };
 
 const VALID_CODE = /^([AB])-(\d+)$/;
@@ -140,7 +141,7 @@ export default function DashboardPage() {
     setRows(prev => prev.map(r => r.id === itemId ? { ...r, done: true, resolvedAt: new Date().toISOString() } : r));
     setSummary(prev => {
       const row = rows.find(r => r.id === itemId);
-      if (!row || row.done) return prev;
+      if (!row || row.done || row.severity === 'exempt') return prev;
       const key = row.severity === 'high' ? 'high' : row.severity === 'medium' ? 'medium' : 'safe';
       return { ...prev, [key]: Math.max(0, prev[key] - 1) };
     });
@@ -180,6 +181,11 @@ export default function DashboardPage() {
             'B-03': 5, 'B-04': 5, 'B-09': 5,
             'B-05': 4,
             'B-06': 2, 'B-07': 2, 'B-08': 2,
+            'A-02': 5, 'A-19': 5, 'A-20': 5, 'A-22': 5,
+            'A-04': 4, 'A-05': 4, 'A-08': 4, 'A-21': 4,
+            'A-06': 3, 'A-16': 3, 'A-17': 3, 'A-25': 3,
+            'A-07': 6, 'A-11': 6, 'A-14': 6,
+            'A-09': 2, 'A-13': 2,
           };
           router.push(`/mypage?step=${stepMap[row.diagnosisCode ?? ''] ?? 2}`);
           return;

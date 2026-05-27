@@ -16,6 +16,15 @@ public record ProfileDto(
         CloudHosting cloudHosting,
         CctvControls cctvControls,
         SecurityControls securityControls,
+        CpoInfo cpoInfo,
+        OperatingInfo operatingInfo,
+        DelegationContracts delegationContracts,
+        MarketingInfo marketingInfo,
+        CctvAdditional cctvAdditional,
+        AccessLogInfo accessLogInfo,
+        JuminInfo juminInfo,
+        ProvisionInfo provisionInfo,
+        InternalPlanInfo internalPlanInfo,
         Instant updatedAt) {
 
     public record Overview(
@@ -48,6 +57,16 @@ public record ProfileDto(
             String retiredAccessRevocation,
             String accessChangeHistoryStatus) {}
 
+    public record CpoInfo(String status, String title) {}
+    public record OperatingInfo(String channels, String privacyPolicyUrl) {}
+    public record DelegationContracts(String contractPerType) {}
+    public record MarketingInfo(String status, String consentType, String nightSend) {}
+    public record CctvAdditional(String signageStatus, String range) {}
+    public record AccessLogInfo(String status) {}
+    public record JuminInfo(String collectionGround) {}
+    public record ProvisionInfo(String status, String consentStatus) {}
+    public record InternalPlanInfo(String status, String cycle) {}
+
     public record ProfileRequest(
             Overview overview,
             Destruction destruction,
@@ -57,7 +76,16 @@ public record ProfileDto(
             DelegationGovernance delegationGovernance,
             CloudHosting cloudHosting,
             CctvControls cctvControls,
-            SecurityControls securityControls) {}
+            SecurityControls securityControls,
+            CpoInfo cpoInfo,
+            OperatingInfo operatingInfo,
+            DelegationContracts delegationContracts,
+            MarketingInfo marketingInfo,
+            CctvAdditional cctvAdditional,
+            AccessLogInfo accessLogInfo,
+            JuminInfo juminInfo,
+            ProvisionInfo provisionInfo,
+            InternalPlanInfo internalPlanInfo) {}
 
     public static ProfileDto from(CompanyProfile profile) {
         return new ProfileDto(
@@ -96,6 +124,15 @@ public record ProfileDto(
                         profile.getRetiredAccessRevocation(),
                         profile.getAccessChangeHistoryStatus()
                 ),
+                new CpoInfo(profile.getCpoStatus(), profile.getCpoTitle()),
+                new OperatingInfo(profile.getOperatingChannels(), profile.getPrivacyPolicyUrl()),
+                new DelegationContracts(profile.getContractPerType()),
+                new MarketingInfo(profile.getMarketingStatus(), profile.getMarketingConsentType(), profile.getMarketingNightSend()),
+                new CctvAdditional(profile.getCctvSignageStatus(), profile.getCctvRange()),
+                new AccessLogInfo(profile.getAccessLogStatus()),
+                new JuminInfo(profile.getJuminCollectionGround()),
+                new ProvisionInfo(profile.getProvisionStatus(), profile.getProvisionConsentStatus()),
+                new InternalPlanInfo(profile.getInternalPlanStatus(), profile.getInternalPlanCycle()),
                 profile.getUpdatedAt()
         );
     }

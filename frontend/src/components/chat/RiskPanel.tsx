@@ -11,6 +11,7 @@ const SEVERITY_STYLES: Record<Severity, SeverityStyle> = {
   medium:  { bg: '#B7791F',         char: '·', color: 'white' },
   safe:    { bg: '#1E8E3E',         char: '✓', color: 'white' },
   pending: { bg: 'var(--gray-300)', char: '',  color: 'white' },
+  exempt:  { bg: 'var(--gray-300)', char: '○', color: '#6B7280' },
 };
 
 function SeverityMarker({ severity }: { severity: Severity }) {

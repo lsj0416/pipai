@@ -127,6 +127,55 @@ public class CompanyProfile {
     @Column(length = 100)
     private String accessChangeHistoryStatus;
 
+    // ── A 섹션 진단 필드 (Phase 3) ──────────────────────────────────────────────
+    @Column(length = 20)
+    private String cpoStatus;
+
+    @Column(length = 100)
+    private String cpoTitle;
+
+    @Column(columnDefinition = "text")
+    private String operatingChannels;
+
+    @Column(length = 500)
+    private String privacyPolicyUrl;
+
+    @Column(columnDefinition = "text")
+    private String contractPerType;
+
+    @Column(length = 20)
+    private String marketingStatus;
+
+    @Column(length = 30)
+    private String marketingConsentType;
+
+    @Column(length = 20)
+    private String marketingNightSend;
+
+    @Column(length = 20)
+    private String cctvSignageStatus;
+
+    @Column(columnDefinition = "text")
+    private String cctvRange;
+
+    @Column(length = 20)
+    private String accessLogStatus;
+
+    @Column(length = 30)
+    private String juminCollectionGround;
+
+    @Column(length = 20)
+    private String provisionStatus;
+
+    @Column(length = 20)
+    private String provisionConsentStatus;
+
+    @Column(length = 20)
+    private String internalPlanStatus;
+
+    @Column(length = 30)
+    private String internalPlanCycle;
+
     // AI 전용 누적 상담 요약 메모 (사용자에게 비노출)
     @Column(columnDefinition = "text")
     private String hiddenMemo;
@@ -154,7 +203,13 @@ public class CompanyProfile {
                        String cloudServerLocation, String overseasServerCountry,
                        String cctvExternalProvision, String cctvAccessControl,
                        String encryptedDataItems, String accessControlSeparation,
-                       String retiredAccessRevocation, String accessChangeHistoryStatus) {
+                       String retiredAccessRevocation, String accessChangeHistoryStatus,
+                       String cpoStatus, String cpoTitle, String operatingChannels, String privacyPolicyUrl,
+                       String contractPerType, String marketingStatus, String marketingConsentType,
+                       String marketingNightSend, String cctvSignageStatus, String cctvRange,
+                       String accessLogStatus, String juminCollectionGround,
+                       String provisionStatus, String provisionConsentStatus,
+                       String internalPlanStatus, String internalPlanCycle) {
         this.businessType = businessType;
         this.employeeCount = employeeCount;
         this.annualRevenue = annualRevenue;
@@ -188,6 +243,22 @@ public class CompanyProfile {
         this.accessControlSeparation = accessControlSeparation;
         this.retiredAccessRevocation = retiredAccessRevocation;
         this.accessChangeHistoryStatus = accessChangeHistoryStatus;
+        this.cpoStatus = cpoStatus;
+        this.cpoTitle = cpoTitle;
+        this.operatingChannels = operatingChannels;
+        this.privacyPolicyUrl = privacyPolicyUrl;
+        this.contractPerType = contractPerType;
+        this.marketingStatus = marketingStatus;
+        this.marketingConsentType = marketingConsentType;
+        this.marketingNightSend = marketingNightSend;
+        this.cctvSignageStatus = cctvSignageStatus;
+        this.cctvRange = cctvRange;
+        this.accessLogStatus = accessLogStatus;
+        this.juminCollectionGround = juminCollectionGround;
+        this.provisionStatus = provisionStatus;
+        this.provisionConsentStatus = provisionConsentStatus;
+        this.internalPlanStatus = internalPlanStatus;
+        this.internalPlanCycle = internalPlanCycle;
     }
 
     public void patchField(String field, String value) {

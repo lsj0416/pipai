@@ -1,0 +1,17 @@
+ALTER TABLE company_profiles
+  ADD COLUMN IF NOT EXISTS cpo_status               VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS cpo_title                VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS operating_channels       TEXT,
+  ADD COLUMN IF NOT EXISTS privacy_policy_url       VARCHAR(500),
+  ADD COLUMN IF NOT EXISTS contract_per_type        TEXT,
+  ADD COLUMN IF NOT EXISTS marketing_status         VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS marketing_consent_type   VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS marketing_night_send     VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS cctv_signage_status      VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS cctv_range               TEXT,
+  ADD COLUMN IF NOT EXISTS access_log_status        VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS jumin_collection_ground  VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS provision_status         VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS provision_consent_status VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS internal_plan_status     VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS internal_plan_cycle      VARCHAR(30);
