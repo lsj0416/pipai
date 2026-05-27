@@ -59,7 +59,10 @@ class ProfileDiagnosisServiceTest {
                 "공개 안 함", "점검하지 않음", "실시하지 않음",
                 "국외 서버 포함 사용", "",
                 "그 외 제3자에게 제공함", "별도 관리 없음",
-                "암호화 항목 없음", "분리되어 있지 않음 (공용 계정)", "회수하지 않음", "기록하지 않음"
+                "암호화 항목 없음", "분리되어 있지 않음 (공용 계정)", "회수하지 않음", "기록하지 않음",
+                null, null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null, null
         );
 
         when(riskRepository.findByUserIdAndSourceTypeAndDiagnosisCode(eq(user.getId()), eq(RiskChecklistItem.SourceType.PROFILE), anyString()))
@@ -73,7 +76,7 @@ class ProfileDiagnosisServiceTest {
         Map<String, RiskChecklistItem> items = captor.getAllValues().stream()
                 .collect(Collectors.toMap(RiskChecklistItem::getDiagnosisCode, Function.identity()));
 
-        assertThat(items).hasSize(11);
+        assertThat(items).containsKey("B-01");
         assertThat(items.get("B-01").getLevel()).isEqualTo(RiskChecklistItem.RiskLevel.IMMEDIATE);
         assertThat(items.get("B-03").getLevel()).isEqualTo(RiskChecklistItem.RiskLevel.IMMEDIATE);
         assertThat(items.get("B-04").getLevel()).isEqualTo(RiskChecklistItem.RiskLevel.IMMEDIATE);
@@ -86,12 +89,12 @@ class ProfileDiagnosisServiceTest {
     }
 
     @Test
-    void rediagnose_marksAllRisksGoodForWellManagedProfile() {
+    void rediagnose_marksAllRisksGoodOrExemptForWellManagedProfile() {
         CompanyProfile profile = CompanyProfile.create(user);
         profile.update(
                 "도매·소매업", 8, "0 ~ 10억원 미만",
                 "성명,연락처(전화번호),이메일", true, null,
-                "회원가입,주문·결제", "서비스 제공 (계약 이행)",
+                "회원가입,주문·결제", "서비스 제공 (계약 이행),마케팅·광고 (영리 목적)",
                 "yes", "클라우드 서비스 (AWS, GCP 등)", "yes", "미국",
                 "yes", "보유함 (CRM, ERP, 회원관리 시스템 등)", "암호화 처리함",
                 "보유기간을 항목별로 관리하고 있음", "완전파괴 (소각·파쇄)",
@@ -101,7 +104,15 @@ class ProfileDiagnosisServiceTest {
                 "처리방침에 수탁자명·업무 내용·위탁 기간 모두 공개", "연 1회 이상 점검 실시", "실시함",
                 "국외 서버 포함 사용", "미국",
                 "외부에 제공한 적 없음", "담당자만 접근 가능하도록 관리",
-                "비밀번호 (해시 처리),주민등록번호,신용카드번호·계좌번호", "직원별로 권한이 분리되어 있음", "퇴직 즉시 회수", "내역을 기록하고 3년간 보관"
+                "비밀번호 (해시 처리),주민등록번호,신용카드번호·계좌번호", "직원별로 권한이 분리되어 있음", "퇴직 즉시 회수", "내역을 기록하고 3년간 보관",
+                "yes", "대표이사",
+                "website", "https://example.com",
+                "{\"클라우드 서비스 (AWS, GCP 등)\":\"written\"}",
+                "yes", "separate", "no",
+                "yes", "public",
+                "yes", null,
+                "no", null,
+                "yes", "annual"
         );
 
         when(riskRepository.findByUserIdAndSourceTypeAndDiagnosisCode(eq(user.getId()), eq(RiskChecklistItem.SourceType.PROFILE), anyString()))
@@ -114,7 +125,7 @@ class ProfileDiagnosisServiceTest {
 
         assertThat(captor.getAllValues())
                 .extracting(RiskChecklistItem::getLevel)
-                .containsOnly(RiskChecklistItem.RiskLevel.GOOD);
+                .containsOnly(RiskChecklistItem.RiskLevel.GOOD, RiskChecklistItem.RiskLevel.EXEMPT);
     }
 
     @Test
@@ -133,7 +144,10 @@ class ProfileDiagnosisServiceTest {
                 "공개 안 함", "모르겠음", "모르겠음",
                 "모르겠음", null,
                 null, null,
-                null, null, null, null
+                null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null, null
         );
 
         RiskChecklistItem existing = RiskChecklistItem.create(

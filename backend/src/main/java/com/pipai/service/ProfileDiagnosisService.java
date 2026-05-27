@@ -274,7 +274,7 @@ public class ProfileDiagnosisService {
     }
 
     private DiagnosisSpec diagnoseA04(CompanyProfile profile) {
-        if (!"운영함".equals(profile.getCctvOperationStatus())) {
+        if (!"yes".equals(profile.getCctvOperationStatus())) {
             return spec("A-04", "CCTV 안내판 미설치", "CCTV를 운영하지 않아 안내판 설치 의무가 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제25조②");
         }
         String signage = profile.getCctvSignageStatus();
@@ -301,7 +301,7 @@ public class ProfileDiagnosisService {
     }
 
     private DiagnosisSpec diagnoseA06(CompanyProfile profile) {
-        if (!"위탁함".equals(profile.getDelegationStatus())) {
+        if (!"yes".equals(profile.getDelegationStatus())) {
             return spec("A-06", "위탁계약 서면 미체결", "위탁 처리를 하지 않아 서면 계약 의무가 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제26조①");
         }
         String contractJson = profile.getContractPerType();
@@ -395,7 +395,7 @@ public class ProfileDiagnosisService {
     }
 
     private DiagnosisSpec diagnoseA21(CompanyProfile profile) {
-        if (!"운영함".equals(profile.getCctvOperationStatus())) {
+        if (!"yes".equals(profile.getCctvOperationStatus())) {
             return spec("A-21", "CCTV 촬영 범위 위반", "CCTV를 운영하지 않습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제25조①");
         }
         String range = profile.getCctvRange();
@@ -510,7 +510,7 @@ public class ProfileDiagnosisService {
     }
 
     private DiagnosisSpec diagnoseA25(CompanyProfile profile) {
-        if (!"위탁함".equals(profile.getDelegationStatus())) {
+        if (!"yes".equals(profile.getDelegationStatus())) {
             return spec("A-25", "위탁 사실 공개 의무", "개인정보 처리를 위탁하지 않아 공개 의무가 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제26조②");
         }
         if (Boolean.FALSE.equals(profile.getHasPrivacyPolicy())) {
