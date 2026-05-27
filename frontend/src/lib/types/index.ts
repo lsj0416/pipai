@@ -81,6 +81,7 @@ export interface ChecklistRow {
   diagnosisCode?: string | null;
   sourceType?: 'PROFILE' | 'CHAT';
   sourceConversationId?: string | null;
+  resolvedAt?: string | null;
 }
 
 export interface GrowthRowData {

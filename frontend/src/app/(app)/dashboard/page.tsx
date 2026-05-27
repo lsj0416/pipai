@@ -79,6 +79,7 @@ export default function DashboardPage() {
           diagnosisCode: item.diagnosisCode,
           sourceType: item.sourceType,
           sourceConversationId: item.sourceConversationId,
+          resolvedAt: item.resolvedAt,
         }));
 
       setRows(validRows);
@@ -136,7 +137,7 @@ export default function DashboardPage() {
     const res = await resolveRisk(token, itemId);
     if (!res.success) return;
 
-    setRows(prev => prev.map(r => r.id === itemId ? { ...r, done: true } : r));
+    setRows(prev => prev.map(r => r.id === itemId ? { ...r, done: true, resolvedAt: new Date().toISOString() } : r));
     setSummary(prev => {
       const row = rows.find(r => r.id === itemId);
       if (!row || row.done) return prev;

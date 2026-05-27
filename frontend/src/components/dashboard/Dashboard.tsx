@@ -12,6 +12,15 @@ interface DashboardProps {
   onResolve?: (itemId: string) => void;
 }
 
+function formatResolvedAt(iso: string): string {
+  const d = new Date(iso);
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${m}/${day} ${hh}:${mm}`;
+}
+
 interface ColorMap { bg: string; border: string; accent: string; text: string }
 const SUMMARY_COLORS: Record<SeverityActive, ColorMap> = {
   high:   { bg: '#FFF1F4', border: '#F8C9D2', accent: '#E4032E', text: '#9D0220' },
@@ -132,7 +141,9 @@ export default function Dashboard({ rows, summary, growth, profileReady, onJumpT
               <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>{r.law}</div>
               <div>
                 {r.done ? (
-                  <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>완료</span>
+                  <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>
+                    완료{r.resolvedAt ? ` · ${formatResolvedAt(r.resolvedAt)}` : ''}
+                  </span>
                 ) : (
                   <button onClick={e => { e.stopPropagation(); if (r.id && onResolve) onResolve(r.id); }} style={{
                     background: 'var(--bg-tint-blue)', color: 'var(--gok-blue)',
