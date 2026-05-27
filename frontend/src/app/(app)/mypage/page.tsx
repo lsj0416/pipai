@@ -1832,6 +1832,13 @@ export default function MyPage() {
                 cursor: 'pointer', fontFamily: 'var(--font-body)',
                 letterSpacing: '-0.01em',
               }}>지금 입력하기</button>
+              <button onClick={() => { setShowOnboardingModal(false); router.push('/chat?mode=profile'); }} style={{
+                width: '100%', padding: '13px', borderRadius: 12,
+                background: 'var(--bg-tint-blue)', color: 'var(--gok-blue)',
+                border: '1px solid var(--gok-blue)', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'var(--font-body)',
+                letterSpacing: '-0.01em',
+              }}>AI와 대화로 작성하기</button>
               <button onClick={handleOnboardingSkip} style={{
                 width: '100%', padding: '13px', borderRadius: 12,
                 background: 'transparent', color: 'var(--fg-3)',
@@ -1860,12 +1867,18 @@ export default function MyPage() {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button onClick={() => router.push('/chat?mode=profile')} style={{
+              padding: '6px 14px', borderRadius: 8,
+              background: 'var(--bg-tint-blue)', color: 'var(--gok-blue)',
+              border: '1px solid var(--gok-blue)', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' as const,
+            }}>AI와 작성하기</button>
             <button onClick={handleOnboardingStart} style={{
               padding: '6px 14px', borderRadius: 8,
               background: 'var(--gok-blue)', color: 'white',
               border: 'none', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' as const,
-            }}>지금 입력하기</button>
+            }}>직접 입력하기</button>
             <button onClick={() => setShowOnboardingBanner(false)} style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: 'var(--fg-3)', padding: 4, display: 'flex', alignItems: 'center',
