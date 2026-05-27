@@ -142,8 +142,10 @@ public class InquiryService {
     private String formatPrecedent(List<Map<String, Object>> cases) {
         if (cases == null || cases.isEmpty()) return null;
         Map<String, Object> c = cases.get(0);
-        String title = String.valueOf(c.getOrDefault("title", ""));
-        String violationType = String.valueOf(c.getOrDefault("violation_type", ""));
+        Object titleObj = c.get("title");
+        String title = titleObj != null ? String.valueOf(titleObj) : "";
+        Object violationTypeObj = c.get("violation_type");
+        String violationType = violationTypeObj != null ? String.valueOf(violationTypeObj) : "";
         Object fineAmount = c.get("fine_amount");
         if (title.isBlank()) return null;
         StringBuilder sb = new StringBuilder(title);
