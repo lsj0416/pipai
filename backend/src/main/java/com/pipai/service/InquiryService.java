@@ -1,27 +1,34 @@
 package com.pipai.service;
 
 import com.pipai.common.exception.ResourceNotFoundException;
+import com.pipai.domain.CompanyProfile;
 import com.pipai.domain.Conversation;
 import com.pipai.domain.InquiryDraft;
 import com.pipai.domain.Message;
 import com.pipai.domain.User;
+import com.pipai.rag.EmbeddingService;
 import com.pipai.rag.LlmService;
+import com.pipai.rag.VectorSearchService;
 import com.pipai.repository.ConversationRepository;
 import com.pipai.repository.InquiryDraftRepository;
 import com.pipai.repository.MessageRepository;
+import com.pipai.repository.ProfileRepository;
 import com.pipai.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InquiryService {
 
     private static final String SYSTEM_PROMPT = """
@@ -41,6 +48,9 @@ public class InquiryService {
     private final MessageRepository messageRepository;
     private final InquiryDraftRepository inquiryDraftRepository;
     private final LlmService llmService;
+    private final EmbeddingService embeddingService;
+    private final VectorSearchService vectorSearchService;
+    private final ProfileRepository profileRepository;
 
     @Transactional
     public InquiryDraft generate(UUID userId, UUID conversationId) {
@@ -66,13 +76,24 @@ public class InquiryService {
         String content = parseContent(generated);
         String relatedLaws = parseRelatedLaws(generated);
 
+        String precedent = null;
+        try {
+            Optional<CompanyProfile> profileOpt = profileRepository.findByUserId(userId);
+            String businessType = profileOpt.map(CompanyProfile::getBusinessType).orElse(null);
+            float[] vector = embeddingService.embed(conversationText);
+            List<Map<String, Object>> cases = vectorSearchService.searchCases(vector, businessType, 1);
+            precedent = formatPrecedent(cases);
+        } catch (Exception e) {
+            log.warn("처분 사례 RAG 검색 실패, precedent=null로 처리: {}", e.getMessage());
+        }
+
         Optional<InquiryDraft> existing = inquiryDraftRepository.findByConversationId(conversationId);
         if (existing.isPresent()) {
-            existing.get().updateContent(subject, content, relatedLaws);
+            existing.get().updateContent(subject, content, relatedLaws, precedent);
             return inquiryDraftRepository.save(existing.get());
         }
 
-        return inquiryDraftRepository.save(InquiryDraft.create(user, conv, subject, content, relatedLaws));
+        return inquiryDraftRepository.save(InquiryDraft.create(user, conv, subject, content, relatedLaws, precedent));
     }
 
     private String buildConversationText(List<Message> messages) {
@@ -116,6 +137,19 @@ public class InquiryService {
         }
         String result = sb.toString().trim();
         return result.isBlank() ? text : result;
+    }
+
+    private String formatPrecedent(List<Map<String, Object>> cases) {
+        if (cases == null || cases.isEmpty()) return null;
+        Map<String, Object> c = cases.get(0);
+        String title = String.valueOf(c.getOrDefault("title", ""));
+        String violationType = String.valueOf(c.getOrDefault("violation_type", ""));
+        Object fineAmount = c.get("fine_amount");
+        if (title.isBlank()) return null;
+        StringBuilder sb = new StringBuilder(title);
+        if (!violationType.isBlank()) sb.append(" — ").append(violationType);
+        if (fineAmount != null) sb.append(", 과징금 ").append(fineAmount).append("원");
+        return sb.toString();
     }
 
     private String parseRelatedLaws(String text) {

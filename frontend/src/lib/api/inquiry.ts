@@ -8,6 +8,7 @@ export interface BackendInquiryDraft {
   subject: string;
   content: string;
   relatedLaws: string | null;
+  precedent: string | null;
   status: InquiryStatus;
   createdAt: string;
   updatedAt: string;

@@ -324,6 +324,9 @@ export default function MyPage() {
           if (p.sensitiveDataTypes) {
             patch.s4_sensitive = p.sensitiveDataTypes.split(',').filter(Boolean);
           }
+          patch.s4_methods = p.collectionMethods
+            ? p.collectionMethods.split(',').filter(Boolean)
+            : prev.s4_methods;
           return { ...prev, ...patch };
         });
       }
@@ -347,6 +350,7 @@ export default function MyPage() {
         personalDataItems: allDataItems.join(','),
         hasPrivacyPolicy: form.s7_policy === 'yes',
         sensitiveDataTypes: form.s4_sensitive.join(','),
+        collectionMethods: form.s4_methods.join(','),
       });
       setSavedMsg('저장되었어요!');
       setTimeout(() => setSavedMsg(''), 2500);

@@ -45,6 +45,10 @@ public class CompanyProfile {
     @Column(columnDefinition = "text")
     private String sensitiveDataTypes;
 
+    // 수집 방법 (콤마 구분)
+    @Column(columnDefinition = "text")
+    private String collectionMethods;
+
     // AI 전용 누적 상담 요약 메모 (사용자에게 비노출)
     @Column(columnDefinition = "text")
     private String hiddenMemo;
@@ -60,13 +64,15 @@ public class CompanyProfile {
     }
 
     public void update(String businessType, Integer employeeCount, String annualRevenue,
-                       String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes) {
+                       String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes,
+                       String collectionMethods) {
         this.businessType = businessType;
         this.employeeCount = employeeCount;
         this.annualRevenue = annualRevenue;
         this.personalDataItems = personalDataItems;
         this.hasPrivacyPolicy = hasPrivacyPolicy;
         this.sensitiveDataTypes = sensitiveDataTypes;
+        this.collectionMethods = collectionMethods;
     }
 
     public void patchField(String field, String value) {

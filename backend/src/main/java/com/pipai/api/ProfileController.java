@@ -25,7 +25,8 @@ public class ProfileController {
             String annualRevenue,
             String personalDataItems,
             Boolean hasPrivacyPolicy,
-            String sensitiveDataTypes) {}
+            String sensitiveDataTypes,
+            String collectionMethods) {}
 
     @GetMapping
     public ApiResponse<CompanyProfile> getProfile(@AuthenticationPrincipal UUID userId) {
@@ -47,7 +48,8 @@ public class ProfileController {
             @AuthenticationPrincipal UUID userId,
             @Valid @RequestBody ProfileRequest req) {
         var data = new ProfileService.ProfileData(req.businessType(), req.employeeCount(),
-                req.annualRevenue(), req.personalDataItems(), req.hasPrivacyPolicy(), req.sensitiveDataTypes());
+                req.annualRevenue(), req.personalDataItems(), req.hasPrivacyPolicy(), req.sensitiveDataTypes(),
+                req.collectionMethods());
         return ApiResponse.ok(profileService.upsertProfile(userId, data));
     }
 }

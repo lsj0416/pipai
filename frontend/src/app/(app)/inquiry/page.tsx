@@ -46,13 +46,13 @@ function InquiryContent() {
             industry: p?.businessType ?? '',
             size: empLabel,
             collected: p?.personalDataItems ?? '',
-            method: '',
+            method: p?.collectionMethods ?? '',
           },
           body: d.content,
           diagnosis: {
             status: '검토 필요',
             law: d.relatedLaws ?? '',
-            precedent: '',
+            precedent: d.precedent ?? '',
           },
         });
       })

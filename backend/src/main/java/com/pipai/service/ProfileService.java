@@ -21,7 +21,8 @@ public class ProfileService {
     private final UserRepository userRepository;
 
     public record ProfileData(String businessType, Integer employeeCount, String annualRevenue,
-                              String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes) {}
+                              String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes,
+                              String collectionMethods) {}
 
     @Transactional(readOnly = true)
     public CompanyProfile getProfile(UUID userId) {
@@ -54,14 +55,16 @@ public class ProfileService {
     public CompanyProfile upsertProfile(UUID userId, ProfileData data) {
         return profileRepository.findByUserId(userId).map(profile -> {
             profile.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
-                    data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes());
+                    data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes(),
+                    data.collectionMethods());
             return profile;
         }).orElseGet(() -> {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
             CompanyProfile profile = CompanyProfile.create(user);
             profile.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
-                    data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes());
+                    data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes(),
+                    data.collectionMethods());
             return profileRepository.save(profile);
         });
     }

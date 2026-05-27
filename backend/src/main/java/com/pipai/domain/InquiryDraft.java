@@ -42,6 +42,10 @@ public class InquiryDraft {
     @Column(columnDefinition = "text")
     private String relatedLaws;
 
+    // 유사 처분 사례 (RAG 검색 결과)
+    @Column(columnDefinition = "text")
+    private String precedent;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status;
@@ -55,13 +59,14 @@ public class InquiryDraft {
     private Instant updatedAt;
 
     public static InquiryDraft create(User user, Conversation conversation,
-                                      String subject, String content, String relatedLaws) {
+                                      String subject, String content, String relatedLaws, String precedent) {
         InquiryDraft draft = new InquiryDraft();
         draft.user = user;
         draft.conversation = conversation;
         draft.subject = subject;
         draft.content = content;
         draft.relatedLaws = relatedLaws;
+        draft.precedent = precedent;
         draft.status = Status.DRAFT;
         return draft;
     }
@@ -70,9 +75,10 @@ public class InquiryDraft {
         this.status = Status.SUBMITTED;
     }
 
-    public void updateContent(String subject, String content, String relatedLaws) {
+    public void updateContent(String subject, String content, String relatedLaws, String precedent) {
         this.subject = subject;
         this.content = content;
         this.relatedLaws = relatedLaws;
+        this.precedent = precedent;
     }
 }

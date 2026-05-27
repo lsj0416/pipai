@@ -8,6 +8,7 @@ export interface Profile {
   personalDataItems: string | null;
   hasPrivacyPolicy: boolean | null;
   sensitiveDataTypes: string | null;
+  collectionMethods: string | null;
   updatedAt: string;
 }
 
@@ -18,6 +19,7 @@ export interface ProfileUpsertRequest {
   personalDataItems: string;
   hasPrivacyPolicy: boolean;
   sensitiveDataTypes: string;
+  collectionMethods: string;
 }
 
 export async function getProfile(token: string): Promise<ApiResponse<Profile>> {
