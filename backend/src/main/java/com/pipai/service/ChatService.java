@@ -19,6 +19,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -101,11 +102,11 @@ public class ChatService {
         }
 
         // 현재 메시지 저장 전에 이력 조회 (중복 포함 방지)
-        List<Message> history = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        boolean isFirstMessage = history.isEmpty();
-        if (history.size() > MAX_HISTORY) {
-            history = history.subList(history.size() - MAX_HISTORY, history.size());
-        }
+        List<Message> fullHistory = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        boolean isFirstMessage = fullHistory.isEmpty();
+        final List<Message> history = fullHistory.size() > MAX_HISTORY
+                ? fullHistory.subList(fullHistory.size() - MAX_HISTORY, fullHistory.size())
+                : fullHistory;
 
         messageRepository.save(Message.ofUser(conv, userMessage));
 
@@ -132,6 +133,7 @@ public class ChatService {
                         pendingChecklistEvents.addAll(buildChecklistEvents(user, ragResult.lawRefs()));
                     }
                     pendingProfileEvents.addAll(buildProfileSuggestions(userMessage, userId));
+                    extractAndApplyProfileFieldsAsync(userId, userMessage, history);
                 })
                 .concatWith(Flux.defer(() ->
                         Flux.fromIterable(pendingChecklistEvents)
@@ -230,6 +232,65 @@ public class ChatService {
             log.warn("profile_suggestion 이벤트 직렬화 실패", e);
             return null;
         }
+    }
+
+    private void extractAndApplyProfileFieldsAsync(UUID userId, String userMessage, List<Message> history) {
+        var optProfile = profileService.findProfile(userId);
+        if (!hasMissingProfileFields(optProfile.orElse(null))) return;
+
+        List<Message> recentHistory = history.size() > 6 ? history.subList(history.size() - 6, history.size()) : history;
+
+        ragPipeline.getLlmService().extractProfileFields(userMessage, recentHistory)
+                .subscribe(
+                        extracted -> {
+                            if (extracted.isEmpty()) return;
+                            var profile = profileService.findProfile(userId).orElse(null);
+                            Map<String, String> toApply = new HashMap<>();
+                            extracted.forEach((field, value) -> {
+                                if (isFieldEmpty(profile, field)) {
+                                    toApply.put(field, value);
+                                }
+                            });
+                            if (!toApply.isEmpty()) {
+                                try {
+                                    profileService.patchFieldBatch(userId, toApply);
+                                    log.info("프로필 자동 업데이트 (userId={}, fields={})", userId, toApply.keySet());
+                                } catch (Exception e) {
+                                    log.warn("프로필 자동 적용 실패 (userId={}): {}", userId, e.getMessage());
+                                }
+                            }
+                        },
+                        e -> log.warn("프로필 필드 추출 실패 (userId={}): {}", userId, e.getMessage())
+                );
+    }
+
+    private boolean hasMissingProfileFields(com.pipai.domain.CompanyProfile profile) {
+        if (profile == null) return true;
+        return profile.getBusinessType() == null
+                || profile.getEmployeeCount() == null
+                || profile.getAnnualRevenue() == null
+                || profile.getDelegationStatus() == null
+                || profile.getCctvOperationStatus() == null
+                || profile.getMarketingStatus() == null;
+    }
+
+    private boolean isFieldEmpty(com.pipai.domain.CompanyProfile profile, String field) {
+        if (profile == null) return true;
+        return switch (field) {
+            case "businessType" -> profile.getBusinessType() == null || profile.getBusinessType().isBlank();
+            case "employeeCount" -> profile.getEmployeeCount() == null;
+            case "annualRevenue" -> profile.getAnnualRevenue() == null || profile.getAnnualRevenue().isBlank();
+            case "hasPrivacyPolicy" -> profile.getHasPrivacyPolicy() == null;
+            case "delegationStatus" -> profile.getDelegationStatus() == null || profile.getDelegationStatus().isBlank();
+            case "cctvOperationStatus" -> profile.getCctvOperationStatus() == null || profile.getCctvOperationStatus().isBlank();
+            case "marketingStatus" -> profile.getMarketingStatus() == null || profile.getMarketingStatus().isBlank();
+            case "overseasTransferStatus" -> profile.getOverseasTransferStatus() == null || profile.getOverseasTransferStatus().isBlank();
+            case "provisionStatus" -> profile.getProvisionStatus() == null || profile.getProvisionStatus().isBlank();
+            case "encryptionStatus" -> profile.getEncryptionStatus() == null || profile.getEncryptionStatus().isBlank();
+            case "systemStatus" -> profile.getSystemStatus() == null || profile.getSystemStatus().isBlank();
+            case "collectionPurposes" -> profile.getCollectionPurposes() == null || profile.getCollectionPurposes().isBlank();
+            default -> false;
+        };
     }
 
     private List<String> buildChecklistEvents(User user, List<Map<String, Object>> lawRefs) {

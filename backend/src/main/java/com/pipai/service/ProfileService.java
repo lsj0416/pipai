@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,12 +56,27 @@ public class ProfileService {
 
     @Transactional
     public void patchField(UUID userId, String field, String value) {
-        CompanyProfile profile = profileRepository.findByUserId(userId).orElseGet(() -> {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
-            return profileRepository.save(CompanyProfile.create(user));
-        });
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        CompanyProfile profile = profileRepository.findByUserId(userId).orElseGet(() ->
+                profileRepository.save(CompanyProfile.create(user)));
         profile.patchField(field, value);
+        profileDiagnosisService.rediagnose(user, profile);
+    }
+
+    @Transactional
+    public void patchFieldBatch(UUID userId, Map<String, String> fields) {
+        if (fields == null || fields.isEmpty()) return;
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        CompanyProfile profile = profileRepository.findByUserId(userId).orElseGet(() ->
+                profileRepository.save(CompanyProfile.create(user)));
+        fields.forEach((f, v) -> {
+            if (v != null && !v.isBlank()) {
+                profile.patchField(f, v);
+            }
+        });
+        profileDiagnosisService.rediagnose(user, profile);
     }
 
     @Transactional

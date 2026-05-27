@@ -266,9 +266,54 @@ public class CompanyProfile {
             case "employeeCount" -> {
                 try { this.employeeCount = Integer.parseInt(value.trim()); } catch (NumberFormatException ignored) {}
             }
+            case "hasPrivacyPolicy" -> this.hasPrivacyPolicy = Boolean.parseBoolean(value);
             case "businessType" -> this.businessType = value;
             case "annualRevenue" -> this.annualRevenue = value;
-            case "hasPrivacyPolicy" -> this.hasPrivacyPolicy = Boolean.parseBoolean(value);
+            case "personalDataItems" -> this.personalDataItems = value;
+            case "sensitiveDataTypes" -> this.sensitiveDataTypes = value;
+            case "collectionMethods" -> this.collectionMethods = value;
+            case "collectionPurposes" -> this.collectionPurposes = value;
+            case "delegationStatus" -> this.delegationStatus = value;
+            case "delegateeTypes" -> this.delegateeTypes = value;
+            case "overseasTransferStatus" -> this.overseasTransferStatus = value;
+            case "overseasTransferCountry" -> this.overseasTransferCountry = value;
+            case "cctvOperationStatus" -> this.cctvOperationStatus = value;
+            case "systemStatus" -> this.systemStatus = value;
+            case "encryptionStatus" -> this.encryptionStatus = value;
+            case "destructionPolicyStatus" -> this.destructionPolicyStatus = value;
+            case "destructionMethods" -> this.destructionMethods = value;
+            case "employmentDocumentRetention" -> this.employmentDocumentRetention = value;
+            case "formerEmployeeDestructionTiming" -> this.formerEmployeeDestructionTiming = value;
+            case "partnerContactDbRegistration" -> this.partnerContactDbRegistration = value;
+            case "partnerContactRetention" -> this.partnerContactRetention = value;
+            case "privacyPolicyIncludedItems" -> this.privacyPolicyIncludedItems = value;
+            case "delegateeDisclosureStatus" -> this.delegateeDisclosureStatus = value;
+            case "delegateeAuditStatus" -> this.delegateeAuditStatus = value;
+            case "delegateeEducationStatus" -> this.delegateeEducationStatus = value;
+            case "cloudServerLocation" -> this.cloudServerLocation = value;
+            case "overseasServerCountry" -> this.overseasServerCountry = value;
+            case "cctvExternalProvision" -> this.cctvExternalProvision = value;
+            case "cctvAccessControl" -> this.cctvAccessControl = value;
+            case "encryptedDataItems" -> this.encryptedDataItems = value;
+            case "accessControlSeparation" -> this.accessControlSeparation = value;
+            case "retiredAccessRevocation" -> this.retiredAccessRevocation = value;
+            case "accessChangeHistoryStatus" -> this.accessChangeHistoryStatus = value;
+            case "cpoStatus" -> this.cpoStatus = value;
+            case "cpoTitle" -> this.cpoTitle = value;
+            case "operatingChannels" -> this.operatingChannels = value;
+            case "privacyPolicyUrl" -> this.privacyPolicyUrl = value;
+            case "contractPerType" -> this.contractPerType = value;
+            case "marketingStatus" -> this.marketingStatus = value;
+            case "marketingConsentType" -> this.marketingConsentType = value;
+            case "marketingNightSend" -> this.marketingNightSend = value;
+            case "cctvSignageStatus" -> this.cctvSignageStatus = value;
+            case "cctvRange" -> this.cctvRange = value;
+            case "accessLogStatus" -> this.accessLogStatus = value;
+            case "juminCollectionGround" -> this.juminCollectionGround = value;
+            case "provisionStatus" -> this.provisionStatus = value;
+            case "provisionConsentStatus" -> this.provisionConsentStatus = value;
+            case "internalPlanStatus" -> this.internalPlanStatus = value;
+            case "internalPlanCycle" -> this.internalPlanCycle = value;
         }
     }
 

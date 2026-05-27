@@ -13,8 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -220,6 +222,60 @@ public class LlmService {
                 .bodyToMono(JsonNode.class)
                 .map(root -> root.path("choices").path(0).path("message").path("content").asText(""))
                 .onErrorMap(e -> new LlmException("LLM 호출 실패", e));
+    }
+
+    public Mono<Map<String, String>> extractProfileFields(String userMessage, List<Message> history) {
+        String historyText = history.stream()
+                .filter(m -> m.getRole() != null)
+                .map(m -> (m.getRole() == Message.Role.USER ? "사용자: " : "AI: ") + m.getContent())
+                .collect(Collectors.joining("\n"));
+
+        String systemPrompt = """
+                사용자 발화에서 기업 프로필 정보를 추출하여 JSON 형식으로 반환하세요.
+                확실한 정보만 포함하고 불확실한 경우 해당 필드는 생략하세요.
+                JSON만 반환하세요. 마크다운 코드블록 없이 순수 JSON만.
+
+                추출 가능한 필드와 허용값:
+                - businessType: 농업·임업·어업, 광업, 제조업, 전기·가스·수도업, 건설업, 소매업, 운수업, 숙박업, 음식점업, 정보통신업, 금융업·보험업, 부동산업, 교육서비스업, 보건업·사회복지서비스업, 기타서비스업
+                - employeeCount: 정수 문자열 (예: "5")
+                - annualRevenue: "0 ~ 10억원 미만", "10억원 이상 ~ 50억원 미만", "50억원 이상 ~ 120억원 미만", "120억원 이상 ~ 300억원 미만", "300억원 이상 ~ 1,500억원 미만", "1,500억원 이상 ~ 5,000억원 미만", "5,000억원 이상"
+                - hasPrivacyPolicy: "true" 또는 "false" (개인정보처리방침 보유 여부)
+                - delegationStatus: "yes", "no", "unknown" (개인정보 처리 위탁 여부)
+                - cctvOperationStatus: "yes", "no" (CCTV 운영 여부)
+                - marketingStatus: "yes", "no" (마케팅 정보 발송 여부)
+                - overseasTransferStatus: "yes", "no", "unknown" (개인정보 국외 이전 여부)
+                - provisionStatus: "yes", "no", "unknown" (제3자 제공 여부)
+                - encryptionStatus: "전부 암호화", "일부 암호화", "암호화 안 함", "모르겠음"
+                - systemStatus: "자체 운영", "SaaS 활용", "없음" (개인정보처리시스템 운영 형태)
+                - collectionPurposes: 해당하는 것을 쉼표로 구분 (서비스 제공, 채용·인사 관리, 마케팅·광고 (영리 목적), 민원 처리, 시설 안전·관리, 기타)
+
+                예시 출력: {"businessType":"음식점업","employeeCount":"5","delegationStatus":"no"}
+                """;
+
+        String userPrompt = (historyText.isBlank() ? "" : "대화 이력:\n" + historyText + "\n\n")
+                + "현재 발화: " + userMessage;
+
+        return completeText(systemPrompt, userPrompt)
+                .map(json -> {
+                    try {
+                        String trimmed = json.trim()
+                                .replaceAll("(?s)^```(?:json)?\\s*", "")
+                                .replaceAll("(?s)\\s*```$", "")
+                                .trim();
+                        JsonNode node = MAPPER.readTree(trimmed);
+                        Map<String, String> result = new HashMap<>();
+                        node.fields().forEachRemaining(e -> {
+                            if (!e.getValue().isNull() && !e.getValue().asText().isBlank()) {
+                                result.put(e.getKey(), e.getValue().asText());
+                            }
+                        });
+                        return result;
+                    } catch (Exception e) {
+                        log.warn("프로필 필드 추출 JSON 파싱 실패: {}", json);
+                        return Map.<String, String>of();
+                    }
+                })
+                .onErrorReturn(Map.of());
     }
 
     String extractContent(String sseChunk) {
