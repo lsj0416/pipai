@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -278,15 +279,15 @@ public class ChatService {
                 })
                 .concatWith(Flux.defer(() ->
                         ragPipeline.getLlmService().extractProfileFields(userMessage, history)
-                                .flatMapMany(extracted -> {
-                                    if (extracted.isEmpty()) return Flux.empty();
-                                    var currentProfile = profileService.findProfile(userId).orElse(null);
-                                    Map<String, String> toApply = new HashMap<>();
-                                    extracted.forEach((field, value) -> {
-                                        if (isFieldEmpty(currentProfile, field)) toApply.put(field, value);
-                                    });
-                                    if (toApply.isEmpty()) return Flux.empty();
-                                    try {
+                                .flatMap(extracted -> {
+                                    if (extracted.isEmpty()) return Mono.empty();
+                                    return Mono.fromCallable(() -> {
+                                        var currentProfile = profileService.findProfile(userId).orElse(null);
+                                        Map<String, String> toApply = new HashMap<>();
+                                        extracted.forEach((field, value) -> {
+                                            if (isFieldEmpty(currentProfile, field)) toApply.put(field, value);
+                                        });
+                                        if (toApply.isEmpty()) return null;
                                         profileService.patchFieldBatch(userId, toApply);
                                         int percent = calculateCompletionPercent(userId);
                                         List<Map<String, String>> savedFields = toApply.entrySet().stream()
@@ -303,11 +304,13 @@ public class ChatService {
                                         String event = objectMapper.writeValueAsString(
                                                 Map.of("type", "profile_fields_saved", "content", content));
                                         log.info("프로필 자동 저장 (userId={}, fields={})", userId, toApply.keySet());
-                                        return Flux.just(event);
-                                    } catch (Exception e) {
-                                        log.warn("profile_fields_saved 이벤트 생성 실패: {}", e.getMessage());
-                                        return Flux.empty();
-                                    }
+                                        return event;
+                                    }).subscribeOn(Schedulers.boundedElastic());
+                                })
+                                .flatMapMany(event -> event != null ? Flux.just(event) : Flux.empty())
+                                .onErrorResume(e -> {
+                                    log.warn("profile_fields_saved 이벤트 생성 실패: {}", e.getMessage());
+                                    return Flux.empty();
                                 })
                 ));
     }
