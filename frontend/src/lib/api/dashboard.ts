@@ -2,6 +2,7 @@ import { apiRequest, type ApiResponse } from './client';
 
 // ── 백엔드 응답 타입 ──────────────────────────────────────────────────────────
 export type RiskLevel = 'IMMEDIATE' | 'CHECK_NEEDED' | 'GOOD';
+export type RiskSourceType = 'PROFILE' | 'CHAT';
 
 export interface BackendRiskItem {
   id: string;
@@ -10,6 +11,10 @@ export interface BackendRiskItem {
   level: RiskLevel;
   relatedLaw: string | null;
   resolved: boolean;
+  diagnosisCode: string | null;
+  sourceType: RiskSourceType;
+  sourceConversationId: string | null;
+  resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +22,7 @@ export interface BackendRiskItem {
 export interface BackendSummary {
   riskCounts: Record<string, number>;
   recentItems: BackendRiskItem[];
+  profileReady: boolean;
 }
 
 // ── API 함수 ──────────────────────────────────────────────────────────────────

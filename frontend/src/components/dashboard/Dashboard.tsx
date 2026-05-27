@@ -7,6 +7,7 @@ interface DashboardProps {
   rows: ChecklistRow[];
   summary: DashboardSummary;
   growth: GrowthScenario[];
+  profileReady: boolean;
   onJumpToChat: (row: ChecklistRow) => void;
   onResolve?: (itemId: string) => void;
 }
@@ -68,7 +69,7 @@ function GrowthRow({ row }: { row: GrowthRowData }) {
   );
 }
 
-export default function Dashboard({ rows, summary, growth, onJumpToChat, onResolve }: DashboardProps) {
+export default function Dashboard({ rows, summary, growth, profileReady, onJumpToChat, onResolve }: DashboardProps) {
   const [tab, setTab] = useState<string>(growth[0]?.id ?? '');
   const [filter, setFilter] = useState<SeverityActive | null>(null);
 
@@ -80,7 +81,7 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat, onResol
     <div style={{ padding: '24px 32px 48px', overflowY: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>리스크 대시보드</div>
-        <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4 }}>대화에서 진단된 항목이 자동으로 정리돼요.</div>
+        <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4 }}>마이페이지 + 대화에서 진단된 항목이 자동으로 정리돼요.</div>
       </div>
 
       {/* 요약 카드 */}
@@ -109,7 +110,9 @@ export default function Dashboard({ rows, summary, growth, onJumpToChat, onResol
           </div>
           {filteredRows.length === 0 && (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--fg-3)', fontSize: 14 }}>
-              {rows.length === 0 ? 'AI 대화를 시작하면 진단 항목이 자동으로 추가돼요.' : '해당 등급의 항목이 없어요.'}
+              {rows.length === 0
+                ? (profileReady ? '현재 확인된 리스크가 없어요.' : '마이페이지 등록 후 진단이 시작됩니다')
+                : '해당 등급의 항목이 없어요.'}
             </div>
           )}
           {filteredRows.map((r, i) => (

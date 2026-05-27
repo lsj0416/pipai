@@ -1,7 +1,7 @@
 package com.pipai.api;
 
+import com.pipai.api.dto.DashboardRiskItemDto;
 import com.pipai.common.ApiResponse;
-import com.pipai.domain.RiskChecklistItem;
 import com.pipai.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,12 +23,12 @@ public class DashboardController {
     }
 
     @GetMapping("/risks")
-    public ApiResponse<List<RiskChecklistItem>> risks(@AuthenticationPrincipal UUID userId) {
+    public ApiResponse<List<DashboardRiskItemDto>> risks(@AuthenticationPrincipal UUID userId) {
         return ApiResponse.ok(dashboardService.getRiskItems(userId));
     }
 
     @PatchMapping("/risks/{id}/resolve")
-    public ApiResponse<RiskChecklistItem> resolve(
+    public ApiResponse<DashboardRiskItemDto> resolve(
             @PathVariable UUID id,
             @AuthenticationPrincipal UUID userId) {
         return ApiResponse.ok(dashboardService.resolveItem(id, userId));

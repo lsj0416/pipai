@@ -12,16 +12,16 @@ function formatDate(iso: string) {
 }
 
 function buildDraft(d: BackendInquiryDraft, p: Profile | null): InquiryDraft {
-  const empLabel = p?.employeeCount ? `${p.employeeCount}명` : '';
+  const empLabel = p?.overview.employeeCount ? `${p.overview.employeeCount}명` : '';
   return {
     id: d.id,
     recipient: '개인정보보호위원회 기술지원 컨설팅',
     title: d.subject,
     biz: {
-      industry: p?.businessType ?? '',
+      industry: p?.overview.businessType ?? '',
       size: empLabel,
-      collected: p?.personalDataItems ?? '',
-      method: p?.collectionMethods ?? '',
+      collected: p?.overview.personalDataItems ?? '',
+      method: p?.overview.collectionMethods ?? '',
     },
     body: d.content,
     diagnosis: {

@@ -22,8 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         userData = {
           name: '사용자',
           business: {
-            name: p.businessType ?? '내 사업체',
-            meta: p.employeeCount ? `직원 ${p.employeeCount}명` : '프로필을 등록해 주세요',
+            name: p.overview.businessType ?? '내 사업체',
+            meta: p.overview.employeeCount ? `직원 ${p.overview.employeeCount}명` : '프로필을 등록해 주세요',
           },
         };
       }

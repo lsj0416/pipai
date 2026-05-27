@@ -19,10 +19,22 @@ public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
+    private final ProfileDiagnosisService profileDiagnosisService;
 
     public record ProfileData(String businessType, Integer employeeCount, String annualRevenue,
                               String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes,
-                              String collectionMethods) {}
+                              String collectionMethods, String collectionPurposes, String delegationStatus,
+                              String delegateeTypes, String overseasTransferStatus, String overseasTransferCountry,
+                              String cctvOperationStatus, String systemStatus, String encryptionStatus,
+                              String destructionPolicyStatus, String destructionMethods,
+                              String employmentDocumentRetention, String formerEmployeeDestructionTiming,
+                              String partnerContactDbRegistration, String partnerContactRetention,
+                              String privacyPolicyIncludedItems, String delegateeDisclosureStatus,
+                              String delegateeAuditStatus, String delegateeEducationStatus,
+                              String cloudServerLocation, String overseasServerCountry,
+                              String cctvExternalProvision, String cctvAccessControl,
+                              String encryptedDataItems, String accessControlSeparation,
+                              String retiredAccessRevocation, String accessChangeHistoryStatus) {}
 
     @Transactional(readOnly = true)
     public CompanyProfile getProfile(UUID userId) {
@@ -53,19 +65,45 @@ public class ProfileService {
 
     @Transactional
     public CompanyProfile upsertProfile(UUID userId, ProfileData data) {
-        return profileRepository.findByUserId(userId).map(profile -> {
-            profile.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+
+        CompanyProfile profile = profileRepository.findByUserId(userId).map(existing -> {
+            existing.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
                     data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes(),
-                    data.collectionMethods());
-            return profile;
+                    data.collectionMethods(), data.collectionPurposes(), data.delegationStatus(),
+                    data.delegateeTypes(), data.overseasTransferStatus(), data.overseasTransferCountry(),
+                    data.cctvOperationStatus(), data.systemStatus(), data.encryptionStatus(),
+                    data.destructionPolicyStatus(), data.destructionMethods(),
+                    data.employmentDocumentRetention(), data.formerEmployeeDestructionTiming(),
+                    data.partnerContactDbRegistration(), data.partnerContactRetention(),
+                    data.privacyPolicyIncludedItems(), data.delegateeDisclosureStatus(),
+                    data.delegateeAuditStatus(), data.delegateeEducationStatus(),
+                    data.cloudServerLocation(), data.overseasServerCountry(),
+                    data.cctvExternalProvision(), data.cctvAccessControl(),
+                    data.encryptedDataItems(), data.accessControlSeparation(),
+                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus());
+            return existing;
         }).orElseGet(() -> {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
-            CompanyProfile profile = CompanyProfile.create(user);
-            profile.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
+            CompanyProfile newProfile = CompanyProfile.create(user);
+            newProfile.update(data.businessType(), data.employeeCount(), data.annualRevenue(),
                     data.personalDataItems(), data.hasPrivacyPolicy(), data.sensitiveDataTypes(),
-                    data.collectionMethods());
-            return profileRepository.save(profile);
+                    data.collectionMethods(), data.collectionPurposes(), data.delegationStatus(),
+                    data.delegateeTypes(), data.overseasTransferStatus(), data.overseasTransferCountry(),
+                    data.cctvOperationStatus(), data.systemStatus(), data.encryptionStatus(),
+                    data.destructionPolicyStatus(), data.destructionMethods(),
+                    data.employmentDocumentRetention(), data.formerEmployeeDestructionTiming(),
+                    data.partnerContactDbRegistration(), data.partnerContactRetention(),
+                    data.privacyPolicyIncludedItems(), data.delegateeDisclosureStatus(),
+                    data.delegateeAuditStatus(), data.delegateeEducationStatus(),
+                    data.cloudServerLocation(), data.overseasServerCountry(),
+                    data.cctvExternalProvision(), data.cctvAccessControl(),
+                    data.encryptedDataItems(), data.accessControlSeparation(),
+                    data.retiredAccessRevocation(), data.accessChangeHistoryStatus());
+            return profileRepository.save(newProfile);
         });
+
+        profileDiagnosisService.rediagnose(user, profile);
+        return profile;
     }
 }

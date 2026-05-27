@@ -1,5 +1,6 @@
 package com.pipai.service;
 
+import com.pipai.api.dto.DashboardRiskItemDto;
 import com.pipai.domain.CompanyProfile;
 import com.pipai.domain.RiskChecklistItem;
 import com.pipai.repository.ProfileRepository;
@@ -20,32 +21,42 @@ public class DashboardService {
     private final RiskRepository riskRepository;
     private final ProfileRepository profileRepository;
 
-    public record DashboardSummary(Map<String, Long> riskCounts, List<RiskChecklistItem> recentItems) {}
+    private static final List<String> PROFILE_CODES = List.of(
+            "B-01", "B-02", "B-03", "B-04", "B-05", "B-06", "B-07", "B-08", "B-09", "B-10", "B-11"
+    );
+
+    public record DashboardSummary(Map<String, Long> riskCounts, List<DashboardRiskItemDto> recentItems, boolean profileReady) {}
     public record GrowthRowData(String title, String law, String severity, boolean applies) {}
     public record GrowthScenario(String id, String label, List<GrowthRowData> rows) {}
 
     @Transactional(readOnly = true)
     public DashboardSummary getSummary(UUID userId) {
-        List<RiskChecklistItem> items = riskRepository.findByUserIdOrderByLevelAscCreatedAtDesc(userId);
+        CompanyProfile profile = profileRepository.findByUserId(userId).orElse(null);
+        List<RiskChecklistItem> items = getVisibleItems(userId);
         Map<String, Long> counts = items.stream()
+                .filter(item -> !item.isResolved())
                 .collect(Collectors.groupingBy(i -> i.getLevel().name(), Collectors.counting()));
-        return new DashboardSummary(counts, items);
+        return new DashboardSummary(
+                counts,
+                items.stream().map(DashboardRiskItemDto::from).toList(),
+                profile != null && profile.isDiagnosisReady()
+        );
     }
 
     @Transactional(readOnly = true)
-    public List<RiskChecklistItem> getRiskItems(UUID userId) {
-        return riskRepository.findByUserIdOrderByLevelAscCreatedAtDesc(userId);
+    public List<DashboardRiskItemDto> getRiskItems(UUID userId) {
+        return getVisibleItems(userId).stream().map(DashboardRiskItemDto::from).toList();
     }
 
     @Transactional
-    public RiskChecklistItem resolveItem(UUID itemId, UUID userId) {
+    public DashboardRiskItemDto resolveItem(UUID itemId, UUID userId) {
         RiskChecklistItem item = riskRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("리스크 항목을 찾을 수 없습니다."));
         if (!item.getUser().getId().equals(userId)) {
             throw new SecurityException("접근 권한이 없습니다.");
         }
         item.resolve();
-        return item;
+        return DashboardRiskItemDto.from(item);
     }
 
     @Transactional(readOnly = true)
@@ -76,5 +87,12 @@ public class DashboardService {
                                 "개인정보보호법 제28조", "medium", true)
                 ))
         );
+    }
+
+    private List<RiskChecklistItem> getVisibleItems(UUID userId) {
+        return riskRepository.findByUserIdOrderByLevelAscCreatedAtDesc(userId).stream()
+                .filter(item -> item.getSourceType() == RiskChecklistItem.SourceType.CHAT
+                        || PROFILE_CODES.contains(item.getDiagnosisCode()))
+                .toList();
     }
 }
