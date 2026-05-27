@@ -29,10 +29,10 @@ function formatRelTime(dateStr: string): string {
 }
 
 const NAV_ITEMS: { id: NavId; label: string; path: string }[] = [
-  { id: 'chat',    label: '대화',            path: '/chat' },
-  { id: 'dash',    label: '리스크 대시보드', path: '/dashboard' },
-  { id: 'me',      label: '마이페이지',       path: '/mypage' },
-  { id: 'inquiry', label: '문의글 생성',     path: '/inquiry' },
+  { id: 'conversations', label: '대화',            path: '/conversations' },
+  { id: 'dash',          label: '리스크 대시보드', path: '/dashboard' },
+  { id: 'me',            label: '마이페이지',       path: '/mypage' },
+  { id: 'inquiry',       label: '문의글 생성',     path: '/inquiry' },
 ];
 
 const SEV_PILL: Record<string, { bg: string; label: string }> = {
@@ -43,7 +43,7 @@ const SEV_PILL: Record<string, { bg: string; label: string }> = {
 
 function NavIcon({ id }: { id: NavId }) {
   const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, style: { flexShrink: 0 } };
-  if (id === 'chat')    return <svg {...common}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+  if (id === 'conversations') return <svg {...common}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
   if (id === 'dash')    return <svg {...common}><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>;
   if (id === 'me')      return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>;
   if (id === 'inquiry') return <svg {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>;
@@ -123,7 +123,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
     listConversations(token)
       .then(res => {
         if (res.success && res.data) {
-          setConversations(res.data.slice(0, 8));
+          setConversations(res.data.slice(0, 5));
         }
       })
       .catch(() => {});
@@ -238,6 +238,11 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
                       await deleteConversation(token, conv.conversationId);
                       setConversations(prev => prev.filter(c => c.conversationId !== conv.conversationId));
                       window.dispatchEvent(new CustomEvent('conversationUpdate'));
+                      // 현재 보고 있는 대화를 삭제했다면 새 대화 화면으로 이동
+                      const currentConvId = new URLSearchParams(window.location.search).get('conversationId');
+                      if (currentConvId === conv.conversationId) {
+                        router.push('/chat');
+                      }
                     }}
                     style={{
                       position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
@@ -297,7 +302,7 @@ export default function Sidebar({ riskItems, user }: SidebarProps) {
       {/* 메뉴 섹션 */}
       <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', padding: '14px 22px 4px' }}>메뉴</div>
       {NAV_ITEMS.map(item => {
-        const active = pathname.startsWith(item.path);
+        const active = pathname.startsWith(item.path) || (item.id === 'conversations' && pathname.startsWith('/chat'));
         return (
           <button key={item.id} onClick={() => router.push(item.path)} style={{
             width: 'calc(100% - 16px)', margin: '0 8px', textAlign: 'left',

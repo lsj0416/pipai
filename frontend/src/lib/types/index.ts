@@ -1,7 +1,7 @@
 // ── 기본 열거형 ──────────────────────────────────────────────────────────────
 export type Severity = 'high' | 'medium' | 'safe' | 'pending';
 export type SeverityActive = 'high' | 'medium' | 'safe';
-export type NavId = 'chat' | 'dash' | 'me' | 'inquiry';
+export type NavId = 'conversations' | 'dash' | 'me' | 'inquiry';
 
 // ── 사용자 / 기업 ─────────────────────────────────────────────────────────────
 export interface RiskMiniItem {
@@ -78,6 +78,9 @@ export interface ChecklistRow {
   severity: SeverityActive;
   law: string;
   done: boolean;
+  diagnosisCode?: string | null;
+  sourceType?: 'PROFILE' | 'CHAT';
+  sourceConversationId?: string | null;
 }
 
 export interface GrowthRowData {

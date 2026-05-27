@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { upsertProfile, getProfile } from '@/lib/api/profile';
 
 // ── 섹션 메타 ────────────────────────────────────────────────────────────────
@@ -63,8 +63,13 @@ interface FormState {
   s4_uniqueId: string[]; s4_juminGround: string;
   s4_sensitive: string[]; s4_credit: string[]; s4_location: string[];
   s4_methods: string[]; s4_purposes: string[]; s4_marketingScope: string[];
+  s4_b08_policy: string; s4_b08_methods: string[];
+  s4_b06_retention: string; s4_b06_exitTiming: string;
+  s4_b07_registration: string; s4_b07_retention: string;
   s5_delegation: string; s5_delegatees: string[];
   s5_contractPerType: Record<string, string>;
+  s5_b01_disclosure: string; s5_b02_audit: string; s5_b02_education: string;
+  s5_b10_serverLocation: string; s5_b10_country: string;
   s5_provision: string; s5_provisionPurpose: string;
   s5_provisionRecipients: string[]; s5_provisionConsent: string;
   s5_overseas: string; s5_overseasCountry: string;
@@ -73,9 +78,13 @@ interface FormState {
   s6_cctv: string; s6_cctvLoc: string[]; s6_cctvLocOther: string;
   s6_cctvRange: string[]; s6_cctvRetention: string;
   s6_cctvSignage: string; s6_system: string;
+  s6_b05_provision: string; s6_b05_access: string;
   s7_policy: string; s7_policyUrl: string; s7_cpo: string; s7_cpoTitle: string;
   s7_internalPlan: string; s7_internalPlanCycle: string;
   s7_encryption: string; s7_accessLog: string;
+  s7_b09_items: string[];
+  s7_b03_items: string[];
+  s7_b04_access: string; s7_b04_retired: string; s7_b04_history: string;
   s8_marketing: string; s8_channels: string[]; s8_consent: string;
   s8_consentTiming: string; s8_nightSend: string;
   s9_plans: string[]; s9_employees: string; s9_revenue: string;
@@ -89,8 +98,13 @@ const INIT: FormState = {
   s4_subjectRange: '', s4_general: [], s4_generalOther: '',
   s4_uniqueId: [], s4_juminGround: '', s4_sensitive: [],
   s4_credit: [], s4_location: [], s4_methods: [], s4_purposes: [], s4_marketingScope: [],
+  s4_b08_policy: '', s4_b08_methods: [],
+  s4_b06_retention: '', s4_b06_exitTiming: '',
+  s4_b07_registration: '', s4_b07_retention: '',
   s5_delegation: '', s5_delegatees: [],
   s5_contractPerType: {},
+  s5_b01_disclosure: '', s5_b02_audit: '', s5_b02_education: '',
+  s5_b10_serverLocation: '', s5_b10_country: '',
   s5_provision: '', s5_provisionPurpose: '',
   s5_provisionRecipients: [], s5_provisionConsent: '',
   s5_overseas: '', s5_overseasCountry: '',
@@ -99,14 +113,21 @@ const INIT: FormState = {
   s6_cctv: '', s6_cctvLoc: [], s6_cctvLocOther: '',
   s6_cctvRange: [], s6_cctvRetention: '',
   s6_cctvSignage: '', s6_system: '',
+  s6_b05_provision: '', s6_b05_access: '',
   s7_policy: '', s7_policyUrl: '', s7_cpo: '', s7_cpoTitle: '',
   s7_internalPlan: '', s7_internalPlanCycle: '', s7_encryption: '', s7_accessLog: '',
+  s7_b09_items: [],
+  s7_b03_items: [],
+  s7_b04_access: '', s7_b04_retired: '', s7_b04_history: '',
   s8_marketing: '', s8_channels: [], s8_consent: '',
   s8_consentTiming: '', s8_nightSend: '',
   s9_plans: [], s9_employees: '', s9_revenue: '', s9_subjectScale: '', s9_newBiz: '',
 };
 
 const STORAGE_KEY = 'pipai_mypage_form';
+
+const csvToArray = (value: string | null | undefined): string[] =>
+  value ? value.split(',').map(v => v.trim()).filter(Boolean) : [];
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 const toggle = (arr: string[], val: string): string[] =>
@@ -259,6 +280,7 @@ const subIndent: React.CSSProperties = {
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 export default function MyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INIT);
   const [mounted, setMounted] = useState(false);
@@ -302,6 +324,18 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!mounted) return;
+    const stepParam = searchParams.get('step');
+    if (!stepParam) return;
+    const nextStep = Number(stepParam);
+    if (Number.isInteger(nextStep) && nextStep >= 0 && nextStep < SECTIONS.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStep(nextStep);
+      setViewMode('form');
+    }
+  }, [mounted, searchParams]);
+
+  useEffect(() => {
+    if (!mounted) return;
     const token = localStorage.getItem('accessToken');
     if (!token) return;
     getProfile(token).then(res => {
@@ -309,24 +343,48 @@ export default function MyPage() {
         const p = res.data;
         setForm(prev => {
           const patch: Partial<FormState> = {
-            s3_industry: p.businessType ?? prev.s3_industry,
-            s3_employees: p.employeeCount != null ? String(p.employeeCount) : prev.s3_employees,
-            s3_revenue: p.annualRevenue ?? prev.s3_revenue,
-            s7_policy: p.hasPrivacyPolicy === true ? 'yes' : p.hasPrivacyPolicy === false ? 'no' : prev.s7_policy,
+            s3_industry: p.overview.businessType ?? prev.s3_industry,
+            s3_employees: p.overview.employeeCount != null ? String(p.overview.employeeCount) : prev.s3_employees,
+            s3_revenue: p.overview.annualRevenue ?? prev.s3_revenue,
+            s7_policy: p.overview.hasPrivacyPolicy === true ? 'yes' : p.overview.hasPrivacyPolicy === false ? 'no' : prev.s7_policy,
+            s4_methods: csvToArray(p.overview.collectionMethods).length > 0 ? csvToArray(p.overview.collectionMethods) : prev.s4_methods,
+            s4_purposes: csvToArray(p.overview.collectionPurposes).length > 0 ? csvToArray(p.overview.collectionPurposes) : prev.s4_purposes,
+            s5_delegation: p.overview.delegationStatus ?? prev.s5_delegation,
+            s5_delegatees: csvToArray(p.overview.delegateeTypes).length > 0 ? csvToArray(p.overview.delegateeTypes) : prev.s5_delegatees,
+            s5_overseas: p.overview.overseasTransferStatus ?? prev.s5_overseas,
+            s5_overseasCountry: p.overview.overseasTransferCountry ?? prev.s5_overseasCountry,
+            s6_cctv: p.overview.cctvOperationStatus ?? prev.s6_cctv,
+            s6_system: p.overview.systemStatus ?? prev.s6_system,
+            s7_encryption: p.overview.encryptionStatus ?? prev.s7_encryption,
+            s4_b08_policy: p.destruction.policyStatus ?? prev.s4_b08_policy,
+            s4_b08_methods: csvToArray(p.destruction.methods).length > 0 ? csvToArray(p.destruction.methods) : prev.s4_b08_methods,
+            s4_b06_retention: p.employmentRetention.documentRetention ?? prev.s4_b06_retention,
+            s4_b06_exitTiming: p.employmentRetention.formerEmployeeDestructionTiming ?? prev.s4_b06_exitTiming,
+            s4_b07_registration: p.partnerContactHandling.dbRegistration ?? prev.s4_b07_registration,
+            s4_b07_retention: p.partnerContactHandling.retentionPolicy ?? prev.s4_b07_retention,
+            s7_b09_items: csvToArray(p.privacyPolicyCompleteness.includedItems).length > 0 ? csvToArray(p.privacyPolicyCompleteness.includedItems) : prev.s7_b09_items,
+            s5_b01_disclosure: p.delegationGovernance.disclosureStatus ?? prev.s5_b01_disclosure,
+            s5_b02_audit: p.delegationGovernance.auditStatus ?? prev.s5_b02_audit,
+            s5_b02_education: p.delegationGovernance.educationStatus ?? prev.s5_b02_education,
+            s5_b10_serverLocation: p.cloudHosting.serverLocation ?? prev.s5_b10_serverLocation,
+            s5_b10_country: p.cloudHosting.overseasServerCountry ?? prev.s5_b10_country,
+            s6_b05_provision: p.cctvControls.externalProvision ?? prev.s6_b05_provision,
+            s6_b05_access: p.cctvControls.accessControl ?? prev.s6_b05_access,
+            s7_b03_items: csvToArray(p.securityControls.encryptedDataItems).length > 0 ? csvToArray(p.securityControls.encryptedDataItems) : prev.s7_b03_items,
+            s7_b04_access: p.securityControls.accessControlSeparation ?? prev.s7_b04_access,
+            s7_b04_retired: p.securityControls.retiredAccessRevocation ?? prev.s7_b04_retired,
+            s7_b04_history: p.securityControls.accessChangeHistoryStatus ?? prev.s7_b04_history,
           };
-          if (p.personalDataItems) {
-            const allItems = p.personalDataItems.split(',').filter(Boolean);
+          if (p.overview.personalDataItems) {
+            const allItems = csvToArray(p.overview.personalDataItems);
             patch.s4_general = allItems.filter(x => !UNIQUE_ID_ITEMS.includes(x) && !CREDIT_ITEMS.includes(x) && !LOCATION_ITEMS.includes(x));
             patch.s4_uniqueId = allItems.filter(x => UNIQUE_ID_ITEMS.includes(x));
             patch.s4_credit = allItems.filter(x => CREDIT_ITEMS.includes(x));
             patch.s4_location = allItems.filter(x => LOCATION_ITEMS.includes(x));
           }
-          if (p.sensitiveDataTypes) {
-            patch.s4_sensitive = p.sensitiveDataTypes.split(',').filter(Boolean);
+          if (p.overview.sensitiveDataTypes) {
+            patch.s4_sensitive = csvToArray(p.overview.sensitiveDataTypes);
           }
-          patch.s4_methods = p.collectionMethods
-            ? p.collectionMethods.split(',').filter(Boolean)
-            : prev.s4_methods;
           return { ...prev, ...patch };
         });
       }
@@ -344,14 +402,59 @@ export default function MyPage() {
         allDataItems.push(form.s4_generalOther);
       }
       await upsertProfile(token, {
-        businessType: form.s3_industry,
-        employeeCount: parseInt(form.s3_employees) || null,
-        annualRevenue: form.s3_revenue,
-        personalDataItems: allDataItems.join(','),
-        hasPrivacyPolicy: form.s7_policy === 'yes',
-        sensitiveDataTypes: form.s4_sensitive.join(','),
-        collectionMethods: form.s4_methods.join(','),
+        overview: {
+          businessType: form.s3_industry || null,
+          employeeCount: parseInt(form.s3_employees) || null,
+          annualRevenue: form.s3_revenue || null,
+          personalDataItems: allDataItems.join(',') || null,
+          hasPrivacyPolicy: form.s7_policy === 'yes' ? true : form.s7_policy === 'no' ? false : null,
+          sensitiveDataTypes: form.s4_sensitive.join(',') || null,
+          collectionMethods: form.s4_methods.join(',') || null,
+          collectionPurposes: form.s4_purposes.join(',') || null,
+          delegationStatus: form.s5_delegation || null,
+          delegateeTypes: form.s5_delegatees.join(',') || null,
+          overseasTransferStatus: form.s5_overseas || null,
+          overseasTransferCountry: form.s5_overseasCountry || null,
+          cctvOperationStatus: form.s6_cctv || null,
+          systemStatus: form.s6_system || null,
+          encryptionStatus: form.s7_encryption || null,
+        },
+        destruction: {
+          policyStatus: form.s4_b08_policy || null,
+          methods: form.s4_b08_methods.join(',') || null,
+        },
+        employmentRetention: {
+          documentRetention: form.s4_b06_retention || null,
+          formerEmployeeDestructionTiming: form.s4_b06_exitTiming || null,
+        },
+        partnerContactHandling: {
+          dbRegistration: form.s4_b07_registration || null,
+          retentionPolicy: form.s4_b07_retention || null,
+        },
+        privacyPolicyCompleteness: {
+          includedItems: form.s7_b09_items.join(',') || null,
+        },
+        delegationGovernance: {
+          disclosureStatus: form.s5_b01_disclosure || null,
+          auditStatus: form.s5_b02_audit || null,
+          educationStatus: form.s5_b02_education || null,
+        },
+        cloudHosting: {
+          serverLocation: form.s5_b10_serverLocation || null,
+          overseasServerCountry: form.s5_b10_country || null,
+        },
+        cctvControls: {
+          externalProvision: form.s6_b05_provision || null,
+          accessControl: form.s6_b05_access || null,
+        },
+        securityControls: {
+          encryptedDataItems: form.s7_b03_items.join(',') || null,
+          accessControlSeparation: form.s7_b04_access || null,
+          retiredAccessRevocation: form.s7_b04_retired || null,
+          accessChangeHistoryStatus: form.s7_b04_history || null,
+        },
       });
+      localStorage.setItem('dashboardNeedsRefresh', 'true');
       setSavedMsg('저장되었어요!');
       setTimeout(() => setSavedMsg(''), 2500);
     } catch {
@@ -670,6 +773,108 @@ export default function MyPage() {
           ))}
         </div>
       </div>
+
+      <div style={fieldWrap}>
+        <label style={labelStyle}>파기 절차 관리 여부</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {['보유기간을 항목별로 관리하고 있음', '보유기간 지나면 삭제하고 있음 (기록 없음)', '별도 파기 절차 없음', '모르겠음'].map(v => (
+            <label key={v} style={radioLabel}>
+              <input type="radio" name="b08Policy" value={v}
+                checked={form.s4_b08_policy === v}
+                onChange={() => set({ s4_b08_policy: v, ...(v !== '보유기간을 항목별로 관리하고 있음' ? { s4_b08_methods: [] } : {}) })} />
+              {v}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {form.s4_b08_policy === '보유기간을 항목별로 관리하고 있음' && (
+        <div style={subIndent}>
+          <label style={labelStyle}>파기 방법</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {['완전파괴 (소각·파쇄)', '전용 소자장비 이용', '삭제', '덮어쓰기·초기화', '마스킹·구멍 뚫기 (부분 파기)', '별도 방법 없음'].map(v => (
+              <label key={v} style={checkLabel}>
+                <input type="checkbox" checked={form.s4_b08_methods.includes(v)}
+                  onChange={() => set({ s4_b08_methods: toggle(form.s4_b08_methods, v) })} />
+                {v}
+                {v === '별도 방법 없음' && form.s4_b08_methods.includes(v) && <WarnBadge text="위반 가능성" />}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {form.s4_purposes.includes('채용·인사 관리') && (
+        <div style={subIndent}>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>이력서·인사서류 보관 기간</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['채용 후 즉시 파기', '6개월 미만 보관 후 파기', '6개월~1년 보관 후 파기', '1년 이상 보관', '별도 관리 없음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b06Retention" value={v}
+                    checked={form.s4_b06_retention === v}
+                    onChange={() => set({ s4_b06_retention: v })} />
+                  {v}
+                  {v === '별도 관리 없음' && form.s4_b06_retention === v && <WarnBadge text="확인 필요" />}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginBottom: 0 }}>
+            <label style={labelStyle}>퇴사자 개인정보 파기 시점</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['퇴직 즉시 파기', '일정 기간 보관 후 파기 (법령 근거)', '보관 중 (파기 계획 없음)', '모르겠음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b06ExitTiming" value={v}
+                    checked={form.s4_b06_exitTiming === v}
+                    onChange={() => set({ s4_b06_exitTiming: v })} />
+                  {v}
+                  {v === '보관 중 (파기 계획 없음)' && form.s4_b06_exitTiming === v && <WarnBadge text="위반 가능성" />}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(form.s4_methods.includes('오프라인 서면 작성') || form.s4_methods.includes('이메일·메신저')) && (
+        <div style={subIndent}>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>거래처 명함·연락처 정보 DB 등록 여부</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['등록하지 않음', '사내 DB·CRM에 등록함', '엑셀 등 파일로만 관리', '모르겠음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b07Registration" value={v}
+                    checked={form.s4_b07_registration === v}
+                    onChange={() => set({ s4_b07_registration: v, ...(v !== '사내 DB·CRM에 등록함' ? { s4_b07_retention: '' } : {}) })} />
+                  {v}
+                </label>
+              ))}
+              {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gok-blue)', background: 'var(--bg-tint-blue)', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                  ℹ 개인정보처리자로서 법적 의무(처리방침 게시, 정보주체 동의 획득, 보유기간 설정 등)가 적용됩니다.
+                </div>
+              )}
+            </div>
+          </div>
+          {form.s4_b07_registration === '사내 DB·CRM에 등록함' && (
+            <div style={{ marginBottom: 0 }}>
+              <label style={labelStyle}>거래 종료 후 거래처 정보 처리 방법</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {['거래 종료 즉시 파기', '일정 기간 보관 후 파기', '계속 보관 중', '모르겠음'].map(v => (
+                  <label key={v} style={radioLabel}>
+                    <input type="radio" name="b07Retention" value={v}
+                      checked={form.s4_b07_retention === v}
+                      onChange={() => set({ s4_b07_retention: v })} />
+                    {v}
+                    {v === '계속 보관 중' && form.s4_b07_retention === v && <WarnBadge text="보유기간 설정 권장" />}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -743,6 +948,94 @@ export default function MyPage() {
               ))}
             </div>
           </div>
+
+          <div style={{ ...fieldWrap, marginBottom: 16 }}>
+            <label style={labelStyle}>처리방침 내 수탁자 공개 여부</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['처리방침에 수탁자명·업무 내용·위탁 기간 모두 공개', '일부만 공개', '공개 안 함', '모르겠음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b01Disclosure" value={v}
+                    checked={form.s5_b01_disclosure === v}
+                    onChange={() => set({ s5_b01_disclosure: v })} />
+                  {v}
+                  {v === '일부만 공개' && form.s5_b01_disclosure === v && <WarnBadge text="보완 필요" />}
+                  {v === '공개 안 함' && form.s5_b01_disclosure === v && <WarnBadge text="위반" />}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div style={fieldWrap}>
+            <label style={labelStyle}>수탁자 정기 점검 여부</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['연 1회 이상 점검 실시', '비정기적으로 점검', '점검하지 않음', '모르겠음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b02Audit" value={v}
+                    checked={form.s5_b02_audit === v}
+                    onChange={() => set({ s5_b02_audit: v })} />
+                  {v}
+                  {v === '점검하지 않음' && form.s5_b02_audit === v && <WarnBadge text="관리·감독 의무" />}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 0 }}>
+            <label style={labelStyle}>수탁자 개인정보 보호 교육 실시 여부</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {['실시함', '실시하지 않음', '모르겠음'].map(v => (
+                <label key={v} style={radioLabel}>
+                  <input type="radio" name="b02Education" value={v}
+                    checked={form.s5_b02_education === v}
+                    onChange={() => set({ s5_b02_education: v })} />
+                  {v}
+                  {v === '실시하지 않음' && form.s5_b02_education === v && <WarnBadge text="교육 의무" />}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {form.s5_delegatees.includes('클라우드 서비스 (AWS, GCP 등)') && (
+            <div style={{ ...subIndent, marginTop: 16 }}>
+              <div style={fieldWrap}>
+                <label style={labelStyle}>클라우드 서버 위치</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {['국내 서버만 사용', '국외 서버 포함 사용', '혼합 사용 (국내+국외)', '모르겠음'].map(v => (
+                    <label key={v} style={radioLabel}>
+                      <input type="radio" name="b10ServerLocation" value={v}
+                        checked={form.s5_b10_serverLocation === v}
+                        onChange={() => set({ s5_b10_serverLocation: v, ...(!v.includes('국외') && v !== '혼합 사용 (국내+국외)' ? { s5_b10_country: '' } : {}) })} />
+                      {v}
+                      {v === '모르겠음' && form.s5_b10_serverLocation === v && <WarnBadge text="서버 위치 확인 권장" />}
+                    </label>
+                  ))}
+                  {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && form.s5_overseas === 'no' && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#854D0E', background: '#FEF9C3', padding: '6px 10px', borderRadius: 6 }}>
+                      ⚠ 국외 서버 사용과 국외 이전 &lsquo;이전 안 됨&rsquo; 선택이 상충합니다. 내용을 확인해 주세요.
+                    </div>
+                  )}
+                </div>
+              </div>
+              {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && (
+                <div style={{ marginBottom: 0 }}>
+                  <label style={labelStyle}>국외 서버 소재 국가</label>
+                  <input style={inputStyle} value={form.s5_b10_country}
+                    onChange={e => set({ s5_b10_country: e.target.value })}
+                    placeholder="예: 미국, 일본, 싱가포르" />
+                  {/EU|유럽|독일|프랑스|영국|이탈리아|스페인|네덜란드|폴란드|벨기에|스위스|오스트리아/i.test(form.s5_b10_country) && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                      ℹ EU·EEA 국가 포함 시 GDPR이 추가 적용될 수 있습니다. 표준계약조항(SCC) 체결 여부를 확인하세요.
+                    </div>
+                  )}
+                  {/일본/i.test(form.s5_b10_country) && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#15803D', background: '#F0FDF4', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                      ℹ 일본은 EU GDPR 적정성 인정국입니다. 국내 개인정보보호법 제28조의8 이전 근거 요건을 확인하세요.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -968,6 +1261,36 @@ export default function MyPage() {
                 ))}
               </div>
             </div>
+
+            <div style={{ ...fieldWrap, marginTop: 16 }}>
+              <label style={labelStyle}>CCTV 영상 외부 제공 여부</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {['외부에 제공한 적 없음', '수사기관·법원 등 법령상 요청 시 제공', '그 외 제3자에게 제공함', '모르겠음'].map(v => (
+                  <label key={v} style={radioLabel}>
+                    <input type="radio" name="b05Provision" value={v}
+                      checked={form.s6_b05_provision === v}
+                      onChange={() => set({ s6_b05_provision: v })} />
+                    {v}
+                    {v === '그 외 제3자에게 제공함' && form.s6_b05_provision === v && <WarnBadge text="위반 가능성" />}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 0 }}>
+              <label style={labelStyle}>CCTV 영상 접근 권한 관리 여부</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {['담당자만 접근 가능하도록 관리', '일부 직원이 접근 가능', '별도 관리 없음', '모르겠음'].map(v => (
+                  <label key={v} style={radioLabel}>
+                    <input type="radio" name="b05Access" value={v}
+                      checked={form.s6_b05_access === v}
+                      onChange={() => set({ s6_b05_access: v })} />
+                    {v}
+                    {v === '별도 관리 없음' && form.s6_b05_access === v && <WarnBadge text="접근 통제 권장" />}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -1086,8 +1409,68 @@ export default function MyPage() {
         </div>
       </div>
 
+      {form.s7_encryption === '일부만 암호화' && (
+        <div style={subIndent}>
+          <label style={labelStyle}>암호화 적용 항목</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호', '운전면허·외국인등록·여권번호', '생체인식정보', '일반 회원정보 (이름·연락처 등)', '암호화 항목 없음'].map(v => {
+              const isMandatory = ['비밀번호 (해시 처리)', '주민등록번호', '신용카드번호·계좌번호'].includes(v);
+              return (
+                <label key={v} style={checkLabel}>
+                  <input type="checkbox" checked={form.s7_b03_items.includes(v)}
+                    onChange={() => set({ s7_b03_items: toggle(form.s7_b03_items, v) })} />
+                  {v}
+                  {isMandatory && !form.s7_b03_items.includes(v) && <WarnBadge text="필수 암호화" />}
+                  {v === '암호화 항목 없음' && form.s7_b03_items.includes(v) && <WarnBadge text="위반" />}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {(form.s6_system === '보유함 (CRM, ERP, 회원관리 시스템 등)') && (
         <div style={fieldWrap}>
+          <label style={labelStyle}>직원별 접근 권한 분리 여부</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+            {['직원별로 권한이 분리되어 있음', '일부만 분리', '분리되어 있지 않음 (공용 계정)', '모르겠음'].map(v => (
+              <label key={v} style={radioLabel}>
+                <input type="radio" name="b04Access" value={v}
+                  checked={form.s7_b04_access === v}
+                  onChange={() => set({ s7_b04_access: v })} />
+                {v}
+                {v === '분리되어 있지 않음 (공용 계정)' && form.s7_b04_access === v && <WarnBadge text="위반" />}
+                {v === '일부만 분리' && form.s7_b04_access === v && <WarnBadge text="전면 분리 권장" />}
+              </label>
+            ))}
+          </div>
+
+          <label style={labelStyle}>퇴직자 접근 권한 즉시 회수 여부</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+            {['퇴직 즉시 회수', '일정 기간 후 회수', '회수하지 않음', '모르겠음'].map(v => (
+              <label key={v} style={radioLabel}>
+                <input type="radio" name="b04Retired" value={v}
+                  checked={form.s7_b04_retired === v}
+                  onChange={() => set({ s7_b04_retired: v })} />
+                {v}
+                {v === '회수하지 않음' && form.s7_b04_retired === v && <WarnBadge text="위반" />}
+              </label>
+            ))}
+          </div>
+
+          <label style={labelStyle}>접근 권한 부여·변경·말소 내역 보관 여부</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+            {['내역을 기록하고 3년간 보관', '기록하지만 3년 미만 보관', '기록하지 않음', '모르겠음'].map(v => (
+              <label key={v} style={radioLabel}>
+                <input type="radio" name="b04History" value={v}
+                  checked={form.s7_b04_history === v}
+                  onChange={() => set({ s7_b04_history: v })} />
+                {v}
+                {v === '기록하지 않음' && form.s7_b04_history === v && <WarnBadge text="위반" />}
+              </label>
+            ))}
+          </div>
+
           <label style={labelStyle}>접속기록 보관 여부</label>
           <div style={{ display: 'flex', gap: 24 }}>
             {[{ v: 'yes', l: '보관함' }, { v: 'no', l: '보관 안 함' }, { v: 'unknown', l: '모르겠음' }].map(({ v, l }) => (
@@ -1096,6 +1479,22 @@ export default function MyPage() {
                   checked={form.s7_accessLog === v}
                   onChange={() => set({ s7_accessLog: v })} />
                 {l}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {form.s7_policy === 'yes' && (
+        <div style={subIndent}>
+          <label style={labelStyle}>처리방침 필수 기재사항 포함 여부</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {['처리 목적·수집 항목·보유기간', '제3자 제공 현황 (해당 시)', '위탁 현황 (해당 시)', 'CPO 성명·연락처', '정보주체 권리·행사 방법', '자동 수집 장치 설치·운영 (해당 시)', '파기 절차·방법'].map(v => (
+              <label key={v} style={checkLabel}>
+                <input type="checkbox" checked={form.s7_b09_items.includes(v)}
+                  onChange={() => set({ s7_b09_items: toggle(form.s7_b09_items, v) })} />
+                {v}
+                {!form.s7_b09_items.includes(v) && <WarnBadge text="보완 필요" />}
               </label>
             ))}
           </div>

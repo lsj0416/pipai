@@ -48,11 +48,10 @@ function ChatPageContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (existingConvId) {
-      conversationIdRef.current = existingConvId;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setConvId(existingConvId);
-    }
+    // existingConvId가 null이 되는 경우(삭제 후 /chat으로 이동)에도 반드시 초기화
+    conversationIdRef.current = existingConvId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setConvId(existingConvId);
   }, [existingConvId]);
 
   useEffect(() => {
@@ -81,6 +80,7 @@ function ChatPageContent() {
         .catch(() => {})
         .finally(() => { if (!cancelled) setLoading(false); });
     } else {
+      setMessages([WELCOME]);
       setLoading(false);
     }
 

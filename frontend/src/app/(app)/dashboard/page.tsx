@@ -12,6 +12,17 @@ const LEVEL_MAP: Record<RiskLevel, ChecklistRow['severity']> = {
   GOOD: 'safe',
 };
 
+const VALID_CODE = /^([AB])-(\d+)$/;
+function isValidDiagnosisCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  const m = VALID_CODE.exec(code);
+  if (!m) return false;
+  const n = parseInt(m[2]);
+  if (m[1] === 'A') return n >= 1 && n <= 26;
+  if (m[1] === 'B') return n >= 1 && n <= 11;
+  return false;
+}
+
 const FALLBACK_GROWTH: GrowthScenario[] = [
   {
     id: 'emp10', label: '직원 10명 초과 시',
@@ -35,6 +46,7 @@ export default function DashboardPage() {
   const [rows, setRows] = useState<ChecklistRow[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>({ high: 0, medium: 0, safe: 0 });
   const [growth, setGrowth] = useState<GrowthScenario[]>(FALLBACK_GROWTH);
+  const [profileReady, setProfileReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -53,19 +65,30 @@ export default function DashboardPage() {
         return;
       }
 
-      const { riskCounts, recentItems } = resSummary.data;
+      const { recentItems } = resSummary.data;
+      setProfileReady(resSummary.data.profileReady);
+
+      const validRows = recentItems
+        .filter(item => isValidDiagnosisCode(item.diagnosisCode))
+        .map(item => ({
+          id:       item.id,
+          title:    item.title,
+          severity: LEVEL_MAP[item.level] ?? 'safe' as ChecklistRow['severity'],
+          law:      item.relatedLaw ?? '',
+          done:     item.resolved,
+          diagnosisCode: item.diagnosisCode,
+          sourceType: item.sourceType,
+          sourceConversationId: item.sourceConversationId,
+        }));
+
+      setRows(validRows);
+
+      const unresolved = validRows.filter(r => !r.done);
       setSummary({
-        high:   Number(riskCounts['IMMEDIATE']   ?? 0),
-        medium: Number(riskCounts['CHECK_NEEDED'] ?? 0),
-        safe:   Number(riskCounts['GOOD']         ?? 0),
+        high:   unresolved.filter(r => r.severity === 'high').length,
+        medium: unresolved.filter(r => r.severity === 'medium').length,
+        safe:   unresolved.filter(r => r.severity === 'safe').length,
       });
-      setRows(recentItems.map(item => ({
-        id:       item.id,
-        title:    item.title,
-        severity: LEVEL_MAP[item.level] ?? 'safe',
-        law:      item.relatedLaw ?? '',
-        done:     item.resolved,
-      })));
 
       if (resGrowth.success && resGrowth.data) {
         setGrowth(resGrowth.data.map(s => ({
@@ -148,7 +171,24 @@ export default function DashboardPage() {
       rows={rows}
       summary={summary}
       growth={growth}
-      onJumpToChat={() => router.push('/chat')}
+      profileReady={profileReady}
+      onJumpToChat={(row) => {
+        if (row.sourceType === 'PROFILE') {
+          const stepMap: Record<string, number> = {
+            'B-01': 3, 'B-02': 3, 'B-10': 3, 'B-11': 3,
+            'B-03': 5, 'B-04': 5, 'B-09': 5,
+            'B-05': 4,
+            'B-06': 2, 'B-07': 2, 'B-08': 2,
+          };
+          router.push(`/mypage?step=${stepMap[row.diagnosisCode ?? ''] ?? 2}`);
+          return;
+        }
+        if (row.sourceConversationId) {
+          router.push(`/chat?conversationId=${row.sourceConversationId}`);
+          return;
+        }
+        router.push('/chat');
+      }}
       onResolve={handleResolve}
     />
   );
