@@ -73,10 +73,6 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
           <KV k="유사 처분 사례" v={draft.diagnosis.precedent} />
         </Section>
 
-        <div style={{ marginTop: 18, padding: 14, background: 'var(--bg-tint-blue)', borderRadius: 10, fontSize: 13, color: 'var(--gok-blue)', lineHeight: 1.55 }}>
-          이 문의글은 <b>한국개인정보보호협회 등록 전문가 12명</b>에게 전달돼요. 보통 24시간 안에 답변을 받을 수 있어요.
-        </div>
-
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
           <button style={{ background: 'white', border: '1px solid var(--border-default)', color: 'var(--fg-1)', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>임시저장</button>
           <button style={{ background: 'var(--gok-blue)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>전문가에게 보내기 →</button>
