@@ -84,7 +84,20 @@ public class ProfileDiagnosisService {
                 diagnoseA20(profile),
                 diagnoseA21(profile),
                 diagnoseA22(profile),
-                diagnoseA25(profile)
+                diagnoseA25(profile),
+                diagnoseA01(profile),
+                diagnoseA03(profile),
+                diagnoseA10(profile),
+                diagnoseA12(profile),
+                diagnoseA15(profile),
+                diagnoseA18(profile),
+                diagnoseA23(profile),
+                diagnoseA24(profile),
+                diagnoseA26(profile),
+                diagnoseC01(profile),
+                diagnoseC02(profile),
+                diagnoseC03(profile),
+                diagnoseC04(profile)
         );
     }
 
@@ -520,6 +533,210 @@ public class ProfileDiagnosisService {
             return spec("A-25", "위탁 사실 공개 의무", "위탁 사실 공개 여부를 확인해야 합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제26조②");
         }
         return spec("A-25", "위탁 사실 공개 의무", "처리방침에 위탁 사실을 공개하고 있습니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제26조②");
+    }
+
+    // ── A 섹션 — Phase 4 (2차 과제) ─────────────────────────────────────────────
+
+    private DiagnosisSpec diagnoseA01(CompanyProfile profile) {
+        Integer emp = profile.getEmployeeCount();
+        if (emp == null) {
+            return spec("A-01", "사업자 유형 자동 분류", "업종·직원수·매출을 입력하면 적용 의무 범위를 자동으로 안내합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "중소기업기본법 시행령 제3조");
+        }
+        if (emp <= 4) {
+            return spec("A-01", "사업자 유형 자동 분류", "소상공인으로 분류됩니다. CPO 지정·내부관리계획 수립 의무가 면제됩니다.", RiskChecklistItem.RiskLevel.GOOD, "소상공인기본법 시행령 제3조");
+        }
+        if (emp < 50) {
+            return spec("A-01", "사업자 유형 자동 분류", "소기업 규모로 분류됩니다. 개인정보보호법 전면 적용 대상입니다.", RiskChecklistItem.RiskLevel.GOOD, "중소기업기본법 시행령 제3조");
+        }
+        return spec("A-01", "사업자 유형 자동 분류", "중소기업 이상 규모로 분류됩니다. 개인정보보호법 전면 적용 대상입니다.", RiskChecklistItem.RiskLevel.GOOD, "중소기업기본법 시행령 제3조");
+    }
+
+    private DiagnosisSpec diagnoseA03(CompanyProfile profile) {
+        String range = profile.getSubjectRange();
+        if (isBlank(range)) {
+            return spec("A-03", "정보주체 규모별 가산 의무", "정보주체 규모를 입력하면 추가 의무를 안내합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제20조②·제20조의2");
+        }
+        // "미만" 여부로 임계값 초과를 구분 (예: "5만명 미만"은 GOOD, "5만명 이상"은 CHECK_NEEDED)
+        if ((range.contains("1천만") || range.contains("1,000만")) && !range.contains("1천만명 미만")) {
+            return spec("A-03", "정보주체 규모별 가산 의무", "1천만명 이상: 징벌적 과징금(매출액 3%) 적용 대상입니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제64조의2");
+        }
+        if ((range.contains("100만") || range.contains("1백만")) && !range.contains("100만명 미만")) {
+            return spec("A-03", "정보주체 규모별 가산 의무", "100만명 이상: 이용·제공 내역 통지 의무(제20조의2)가 발생합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제20조의2");
+        }
+        if ((range.contains("5만") || range.contains("50,000")) && !range.contains("5만명 미만")) {
+            return spec("A-03", "정보주체 규모별 가산 의무", "5만명 이상: 민감·고유식별정보 출처 고지 의무가 발생합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제20조②");
+        }
+        return spec("A-03", "정보주체 규모별 가산 의무", "현재 규모에서 출처 고지 등 가산 의무가 없습니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제20조②");
+    }
+
+    private DiagnosisSpec diagnoseA10(CompanyProfile profile) {
+        if ("no".equals(profile.getMarketingStatus())) {
+            return spec("A-10", "마케팅 채널 vs 수집 정보 정합성", "마케팅 발송을 하지 않아 해당 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제15조");
+        }
+        String channels = profile.getMarketingChannels();
+        if (isBlank(channels)) {
+            return spec("A-10", "마케팅 채널 vs 수집 정보 정합성", "마케팅 발송 채널을 입력하면 수집 정보와의 정합성을 확인할 수 있습니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제15조");
+        }
+        List<String> dataItems = ProfileDto.splitCsv(profile.getPersonalDataItems());
+        boolean sendsSms = channels.contains("문자") || channels.contains("SMS");
+        boolean hasContact = dataItems.stream().anyMatch(i -> i.contains("연락처") || i.contains("전화번호") || i.contains("휴대폰"));
+        if (sendsSms && !hasContact) {
+            return spec("A-10", "마케팅 채널 vs 수집 정보 정합성", "문자·SMS 발송 채널을 사용하지만 연락처 수집 항목이 없습니다.", RiskChecklistItem.RiskLevel.IMMEDIATE, "개인정보보호법 제15조");
+        }
+        boolean sendsEmail = channels.contains("이메일") || channels.contains("email");
+        boolean hasEmail = dataItems.stream().anyMatch(i -> i.contains("이메일") || i.contains("email"));
+        if (sendsEmail && !hasEmail) {
+            return spec("A-10", "마케팅 채널 vs 수집 정보 정합성", "이메일 발송 채널을 사용하지만 이메일 수집 항목이 없습니다.", RiskChecklistItem.RiskLevel.IMMEDIATE, "개인정보보호법 제15조");
+        }
+        return spec("A-10", "마케팅 채널 vs 수집 정보 정합성", "마케팅 발송 채널과 수집 정보가 일치합니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제15조");
+    }
+
+    private DiagnosisSpec diagnoseA12(CompanyProfile profile) {
+        if ("no".equals(profile.getMarketingStatus())) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 발송을 하지 않아 해당 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제26조①");
+        }
+        if (!"yes".equals(profile.getDelegationStatus())) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅을 자체 발송하고 있어 위탁 의무가 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제26조①");
+        }
+        List<String> delegatees = ProfileDto.splitCsv(profile.getDelegateeTypes());
+        boolean hasMarketingAgent = delegatees.stream().anyMatch(d -> d.contains("마케팅") || d.contains("광고"));
+        if (!hasMarketingAgent) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 대행 수탁자가 없어 해당 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제26조①");
+        }
+        String contractJson = profile.getContractPerType();
+        if (isBlank(contractJson)) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 대행 수탁자의 계약 형태를 확인해야 합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제26조①");
+        }
+        int violations = countOccurrences(contractJson, "\"verbal\"") + countOccurrences(contractJson, "\"none\"");
+        if (violations > 0) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 대행 수탁자와 서면 계약이 체결되지 않았습니다.", RiskChecklistItem.RiskLevel.IMMEDIATE, "개인정보보호법 제26조①");
+        }
+        if (contractJson.contains("\"unknown\"")) {
+            return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 대행 수탁자의 계약 형태를 확인해야 합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제26조①");
+        }
+        return spec("A-12", "마케팅 대행 위탁계약 검증", "마케팅 대행 수탁자와 서면 계약이 확인됩니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제26조①");
+    }
+
+    private DiagnosisSpec diagnoseA15(CompanyProfile profile) {
+        List<String> items = ProfileDto.splitCsv(profile.getPersonalDataItems());
+        boolean hasFinancialData = items.stream().anyMatch(i ->
+                i.contains("신용카드") || i.contains("계좌번호") || i.contains("신용평점") || i.contains("신용정보"));
+        if (hasFinancialData) {
+            return spec("A-15", "신용정보 처리 신용정보법 적용", "신용카드번호·계좌번호 등 신용정보를 처리하고 있어 신용정보법 추가 검토가 필요합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "신용정보법 제15조②·제19조");
+        }
+        return spec("A-15", "신용정보 처리 신용정보법 적용", "신용정보 수집이 확인되지 않아 신용정보법 적용 대상이 아닙니다.", RiskChecklistItem.RiskLevel.EXEMPT, "신용정보법 제15조②");
+    }
+
+    private DiagnosisSpec diagnoseA18(CompanyProfile profile) {
+        List<String> channels = ProfileDto.splitCsv(profile.getOperatingChannels());
+        boolean hasOnline = channels.stream().anyMatch(c ->
+                c.contains("website") || c.contains("홈페이지") || c.contains("app") || c.contains("앱") || c.contains("온라인"));
+        if (isBlank(profile.getOperatingChannels())) {
+            return spec("A-18", "처리방침 게시 위치 검증", "운영 채널 정보를 입력하면 게시 의무를 확인할 수 있습니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제30조②");
+        }
+        if (!hasOnline) {
+            return spec("A-18", "처리방침 게시 위치 검증", "온라인 채널을 운영하지 않아 웹사이트 게시 의무가 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제30조②");
+        }
+        if (!isBlank(profile.getPrivacyPolicyUrl())) {
+            return spec("A-18", "처리방침 게시 위치 검증", "웹사이트에 처리방침 URL이 등록되어 있습니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제30조②");
+        }
+        if (Boolean.FALSE.equals(profile.getHasPrivacyPolicy())) {
+            return spec("A-18", "처리방침 게시 위치 검증", "온라인 채널을 운영하고 있으나 처리방침 온라인 게시가 필요합니다.", RiskChecklistItem.RiskLevel.IMMEDIATE, "개인정보보호법 제30조②");
+        }
+        return spec("A-18", "처리방침 게시 위치 검증", "처리방침 URL을 입력하면 게시 여부를 정확히 확인할 수 있습니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제30조②");
+    }
+
+    private DiagnosisSpec diagnoseA23(CompanyProfile profile) {
+        List<String> channels = ProfileDto.splitCsv(profile.getOperatingChannels());
+        boolean usesMarketplace = channels.stream().anyMatch(c ->
+                c.contains("오픈마켓") || c.contains("marketplace") || c.contains("쇼핑몰 입점"));
+        if (!usesMarketplace) {
+            return spec("A-23", "오픈마켓 고객정보 처리 범위", "오픈마켓 채널을 운영하지 않아 해당 없습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제2조·제30조");
+        }
+        String source = profile.getMarketplaceSource();
+        if (!isBlank(source) && (source.contains("플랫폼이 처리") || source.contains("받지 않음"))) {
+            return spec("A-23", "오픈마켓 고객정보 처리 범위", "플랫폼이 고객정보를 처리하므로 개인정보처리자에 해당하지 않습니다.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제2조");
+        }
+        if (!isBlank(source) && (source.contains("전달받아") || source.contains("직접 처리"))) {
+            return spec("A-23", "오픈마켓 고객정보 처리 범위", "오픈마켓에서 고객정보를 전달받아 처리하므로 처리방침 공개 및 위탁 의무가 적용됩니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제2조·제30조");
+        }
+        return spec("A-23", "오픈마켓 고객정보 처리 범위", "오픈마켓에서의 고객정보 수령 방식을 확인해야 합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제2조·제30조");
+    }
+
+    private DiagnosisSpec diagnoseA24(CompanyProfile profile) {
+        String futureEmp = profile.getFutureEmployees();
+        String futureScale = profile.getFutureSubjectScale();
+        String newBiz = profile.getNewBiz();
+        String futureRev = profile.getFutureRevenue();
+        if (isBlank(futureEmp) && isBlank(futureScale) && isBlank(newBiz) && isBlank(futureRev)) {
+            return spec("A-24", "성장 시나리오 미래 의무 알림", "미래 성장 계획이 입력되지 않았습니다. 계획이 있다면 마이페이지 섹션 8을 입력하세요.", RiskChecklistItem.RiskLevel.EXEMPT, "개인정보보호법 제20조의2·제31조·제37조의2");
+        }
+        List<String> notices = new ArrayList<>();
+        if (!isBlank(futureEmp) && (futureEmp.contains("채용") || futureEmp.contains("증가") || futureEmp.contains("5명"))) {
+            notices.add("직원 증가 시 CPO 지정 의무 발생 예정");
+        }
+        if (!isBlank(futureScale)) {
+            if (futureScale.contains("1천만")) {
+                notices.add("1천만명 돌파 시 징벌적 과징금 대상");
+            } else if (futureScale.contains("100만")) {
+                notices.add("100만명 돌파 시 이용·제공 내역 통지 의무(제20조의2) 발생");
+            } else if (futureScale.contains("5만")) {
+                notices.add("5만명 돌파 시 출처 고지·접속기록 2년 보관 의무 발생");
+            }
+        }
+        if (!isBlank(newBiz) && (newBiz.contains("AI") || newBiz.contains("신기술"))) {
+            notices.add("AI 도입 시 자동화된 결정 권리 보장 의무(제37조의2, 2026.9.11. 시행)");
+        }
+        if (!isBlank(newBiz) && newBiz.contains("해외")) {
+            notices.add("해외 진출 시 국외 이전 절차 사전 준비 필요");
+        }
+        if (!notices.isEmpty()) {
+            return spec("A-24", "성장 시나리오 미래 의무 알림", String.join(" / ", notices), RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제20조의2·제31조·제37조의2");
+        }
+        return spec("A-24", "성장 시나리오 미래 의무 알림", "현재 계획 기준으로 추가 의무 발생 가능성이 낮습니다.", RiskChecklistItem.RiskLevel.GOOD, "개인정보보호법 제20조의2·제31조·제37조의2");
+    }
+
+    private DiagnosisSpec diagnoseA26(CompanyProfile profile) {
+        String sys = profile.getSystemStatus();
+        if (isBlank(sys)) {
+            return spec("A-26", "개인정보처리시스템 의무 매칭", "시스템 현황을 입력하면 적용 안전조치 의무를 자동으로 안내합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제29조·안전조치기준 고시");
+        }
+        if (sys.contains("시스템") || sys.contains("앱") || sys.contains("홈페이지") || sys.contains("CRM") || sys.contains("ERP")) {
+            return spec("A-26", "개인정보처리시스템 의무 매칭", "전자적 시스템 운영 중: 접속기록 보관(A-08), 접근권한 통제(B-04), 암호화(A-20), 내부관리계획(A-19) 전체 의무가 적용됩니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제29조·안전조치기준 고시");
+        }
+        if (sys.contains("엑셀") || sys.contains("문서")) {
+            return spec("A-26", "개인정보처리시스템 의무 매칭", "엑셀·문서 기반 관리: 파일 암호화 및 비밀번호 설정을 권장합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제29조·안전조치기준 고시");
+        }
+        if (sys.contains("종이")) {
+            return spec("A-26", "개인정보처리시스템 의무 매칭", "종이 문서 기반: 잠금장치 보관 및 파기 방법 수립을 권장합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제29조·안전조치기준 고시");
+        }
+        return spec("A-26", "개인정보처리시스템 의무 매칭", "시스템 현황 기반 적용 의무를 확인해야 합니다.", RiskChecklistItem.RiskLevel.CHECK_NEEDED, "개인정보보호법 제29조·안전조치기준 고시");
+    }
+
+    // ── C 섹션 — 판단 불가 안내 (항상 생성) ─────────────────────────────────────
+
+    private DiagnosisSpec diagnoseC01(CompanyProfile profile) {
+        return spec("C-01", "실제 이행 여부 확인 불가",
+                "입력값의 사실 여부는 PIPAi가 확인할 수 없습니다. 자체 점검 또는 전문가 검토를 권장합니다.",
+                RiskChecklistItem.RiskLevel.CHECK_NEEDED, null);
+    }
+
+    private DiagnosisSpec diagnoseC02(CompanyProfile profile) {
+        return spec("C-02", "계약서·문서 내용 확인 불가",
+                "위탁계약서·처리방침의 실제 내용 적합성은 문서 접근 없이 판단할 수 없습니다.",
+                RiskChecklistItem.RiskLevel.CHECK_NEEDED, null);
+    }
+
+    private DiagnosisSpec diagnoseC03(CompanyProfile profile) {
+        return spec("C-03", "기술적 구현 수준 확인 불가",
+                "암호화 알고리즘·접속기록 실제 작동 여부 등은 시스템 접근 없이 판단할 수 없습니다.",
+                RiskChecklistItem.RiskLevel.CHECK_NEEDED, null);
+    }
+
+    private DiagnosisSpec diagnoseC04(CompanyProfile profile) {
+        return spec("C-04", "최종 법적 판단 불가",
+                "이 진단은 1차 위험 분류입니다. 최종 위반 여부·과태료·감경 여부는 개보위 문의(02-2100-3025) 또는 전문가 확인이 필요합니다.",
+                RiskChecklistItem.RiskLevel.CHECK_NEEDED, null);
     }
 
     private DiagnosisSpec spec(String code, String title, String description, RiskChecklistItem.RiskLevel level, String law) {

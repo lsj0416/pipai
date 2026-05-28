@@ -102,7 +102,7 @@ class ProfileDiagnosisServiceTest {
         profile.update(
                 null, null, null, null, null, null, null,
                 "도매·소매업", null, 8, "0 ~ 10억원 미만", null,
-                null, "성명,연락처(전화번호),이메일", true, null, null,
+                "5만명 미만", "성명,연락처(전화번호),이메일", true, null, null,
                 "회원가입,주문·결제", "서비스 제공 (계약 이행),마케팅·광고 (영리 목적)", null,
                 "yes", "클라우드 서비스 (AWS, GCP 등)", "yes", "미국",
                 "yes", "보유함 (CRM, ERP, 회원관리 시스템 등)", "암호화 처리함",
@@ -124,7 +124,7 @@ class ProfileDiagnosisServiceTest {
                 "yes", "annual",
                 null, null, null,
                 null, null, null,
-                null, null,
+                "이메일", null,
                 null, null, null,
                 null, null
         );
@@ -137,9 +137,16 @@ class ProfileDiagnosisServiceTest {
         ArgumentCaptor<RiskChecklistItem> captor = ArgumentCaptor.forClass(RiskChecklistItem.class);
         verify(riskRepository, atLeastOnce()).save(captor.capture());
 
+        // C 섹션(판단 불가 안내)과 A-26(시스템 의무 매칭)은 항상 CHECK_NEEDED로 생성됨
         assertThat(captor.getAllValues())
+                .filteredOn(item -> !item.getDiagnosisCode().startsWith("C-")
+                        && !"A-26".equals(item.getDiagnosisCode()))
                 .extracting(RiskChecklistItem::getLevel)
                 .containsOnly(RiskChecklistItem.RiskLevel.GOOD, RiskChecklistItem.RiskLevel.EXEMPT);
+        assertThat(captor.getAllValues())
+                .filteredOn(item -> item.getDiagnosisCode().startsWith("C-"))
+                .extracting(RiskChecklistItem::getLevel)
+                .containsOnly(RiskChecklistItem.RiskLevel.CHECK_NEEDED);
     }
 
     @Test

@@ -24,7 +24,9 @@ public class DashboardService {
     private static final List<String> PROFILE_CODES = List.of(
             "B-01", "B-02", "B-03", "B-04", "B-05", "B-06", "B-07", "B-08", "B-09", "B-10", "B-11",
             "A-02", "A-04", "A-05", "A-06", "A-07", "A-08", "A-09", "A-11", "A-13",
-            "A-14", "A-16", "A-17", "A-19", "A-20", "A-21", "A-22", "A-25"
+            "A-14", "A-16", "A-17", "A-19", "A-20", "A-21", "A-22", "A-25",
+            "A-01", "A-03", "A-10", "A-12", "A-15", "A-18", "A-23", "A-24", "A-26",
+            "C-01", "C-02", "C-03", "C-04"
     );
 
     public record DashboardSummary(Map<String, Long> riskCounts, List<DashboardRiskItemDto> recentItems, boolean profileReady) {}
