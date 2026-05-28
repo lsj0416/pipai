@@ -1,14 +1,29 @@
 import { apiRequest, type ApiResponse } from './client';
 
+export interface ProfileBasicInfo {
+  companyName: string | null;
+  representativeName: string | null;
+  businessRegistrationNumber: string | null;
+  entityType: string | null;
+  foundingYear: string | null;
+  companyPhone: string | null;
+  companyAddress: string | null;
+}
+
 export interface ProfileOverview {
   businessType: string | null;
+  industryDetail: string | null;
   employeeCount: number | null;
   annualRevenue: string | null;
+  largeAssets: string | null;
+  subjectRange: string | null;
   personalDataItems: string | null;
   hasPrivacyPolicy: boolean | null;
   sensitiveDataTypes: string | null;
+  generalOther: string | null;
   collectionMethods: string | null;
   collectionPurposes: string | null;
+  marketingScope: string | null;
   delegationStatus: string | null;
   delegateeTypes: string | null;
   overseasTransferStatus: string | null;
@@ -67,11 +82,15 @@ export interface ProfileMarketingInfo { status: string | null; consentType: stri
 export interface ProfileCctvAdditional { signageStatus: string | null; range: string | null; }
 export interface ProfileAccessLogInfo { status: string | null; }
 export interface ProfileJuminInfo { collectionGround: string | null; }
-export interface ProfileProvisionInfo { status: string | null; consentStatus: string | null; }
+export interface ProfileProvisionInfo { status: string | null; purpose: string | null; recipients: string | null; consentStatus: string | null; }
 export interface ProfileInternalPlanInfo { status: string | null; cycle: string | null; }
+export interface ProfileFuturePlan { plans: string | null; employees: string | null; revenue: string | null; subjectScale: string | null; newBiz: string | null; }
+export interface ProfileCctvExtra { websiteUrl: string | null; appName: string | null; marketplaceSource: string | null; cctvLoc: string | null; cctvLocOther: string | null; cctvRetention: string | null; }
+export interface ProfileMarketingExtra { channels: string | null; consentTiming: string | null; }
 
 export interface Profile {
   id: string;
+  basicInfo: ProfileBasicInfo;
   overview: ProfileOverview;
   destruction: ProfileDestruction;
   employmentRetention: ProfileEmploymentRetention;
@@ -90,10 +109,14 @@ export interface Profile {
   juminInfo: ProfileJuminInfo;
   provisionInfo: ProfileProvisionInfo;
   internalPlanInfo: ProfileInternalPlanInfo;
+  futurePlan: ProfileFuturePlan;
+  cctvExtra: ProfileCctvExtra;
+  marketingExtra: ProfileMarketingExtra;
   updatedAt: string;
 }
 
 export interface ProfileUpsertRequest {
+  basicInfo: ProfileBasicInfo;
   overview: ProfileOverview;
   destruction: ProfileDestruction;
   employmentRetention: ProfileEmploymentRetention;
@@ -112,6 +135,9 @@ export interface ProfileUpsertRequest {
   juminInfo: ProfileJuminInfo;
   provisionInfo: ProfileProvisionInfo;
   internalPlanInfo: ProfileInternalPlanInfo;
+  futurePlan: ProfileFuturePlan;
+  cctvExtra: ProfileCctvExtra;
+  marketingExtra: ProfileMarketingExtra;
 }
 
 type LegacyProfile = {
@@ -126,26 +152,22 @@ type LegacyProfile = {
   updatedAt?: string;
 };
 
+const EMPTY_BASIC_INFO: ProfileBasicInfo = {
+  companyName: null, representativeName: null, businessRegistrationNumber: null,
+  entityType: null, foundingYear: null, companyPhone: null, companyAddress: null,
+};
+
 const EMPTY_OVERVIEW: ProfileOverview = {
-  businessType: null,
-  employeeCount: null,
-  annualRevenue: null,
-  personalDataItems: null,
-  hasPrivacyPolicy: null,
-  sensitiveDataTypes: null,
-  collectionMethods: null,
-  collectionPurposes: null,
-  delegationStatus: null,
-  delegateeTypes: null,
-  overseasTransferStatus: null,
-  overseasTransferCountry: null,
-  cctvOperationStatus: null,
-  systemStatus: null,
-  encryptionStatus: null,
+  businessType: null, industryDetail: null, employeeCount: null, annualRevenue: null,
+  largeAssets: null, subjectRange: null, personalDataItems: null, hasPrivacyPolicy: null,
+  sensitiveDataTypes: null, generalOther: null, collectionMethods: null, collectionPurposes: null,
+  marketingScope: null, delegationStatus: null, delegateeTypes: null, overseasTransferStatus: null,
+  overseasTransferCountry: null, cctvOperationStatus: null, systemStatus: null, encryptionStatus: null,
 };
 
 const EMPTY_PROFILE: Profile = {
   id: '',
+  basicInfo: EMPTY_BASIC_INFO,
   overview: EMPTY_OVERVIEW,
   destruction: { policyStatus: null, methods: null },
   employmentRetention: { documentRetention: null, formerEmployeeDestructionTiming: null },
@@ -167,8 +189,11 @@ const EMPTY_PROFILE: Profile = {
   cctvAdditional: { signageStatus: null, range: null },
   accessLogInfo: { status: null },
   juminInfo: { collectionGround: null },
-  provisionInfo: { status: null, consentStatus: null },
+  provisionInfo: { status: null, purpose: null, recipients: null, consentStatus: null },
   internalPlanInfo: { status: null, cycle: null },
+  futurePlan: { plans: null, employees: null, revenue: null, subjectScale: null, newBiz: null },
+  cctvExtra: { websiteUrl: null, appName: null, marketplaceSource: null, cctvLoc: null, cctvLocOther: null, cctvRetention: null },
+  marketingExtra: { channels: null, consentTiming: null },
   updatedAt: '',
 };
 
@@ -199,6 +224,7 @@ function normalizeProfile(input: unknown): Profile | null {
   return {
     ...EMPTY_PROFILE,
     ...data,
+    basicInfo: { ...EMPTY_BASIC_INFO, ...data.basicInfo },
     overview: { ...EMPTY_OVERVIEW, ...overview },
     destruction: { ...EMPTY_PROFILE.destruction, ...data.destruction },
     employmentRetention: { ...EMPTY_PROFILE.employmentRetention, ...data.employmentRetention },
@@ -217,6 +243,9 @@ function normalizeProfile(input: unknown): Profile | null {
     juminInfo: { ...EMPTY_PROFILE.juminInfo, ...data.juminInfo },
     provisionInfo: { ...EMPTY_PROFILE.provisionInfo, ...data.provisionInfo },
     internalPlanInfo: { ...EMPTY_PROFILE.internalPlanInfo, ...data.internalPlanInfo },
+    futurePlan: { ...EMPTY_PROFILE.futurePlan, ...data.futurePlan },
+    cctvExtra: { ...EMPTY_PROFILE.cctvExtra, ...data.cctvExtra },
+    marketingExtra: { ...EMPTY_PROFILE.marketingExtra, ...data.marketingExtra },
     id: data.id ?? '',
     updatedAt: data.updatedAt ?? '',
   };

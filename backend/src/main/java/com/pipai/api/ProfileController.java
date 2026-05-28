@@ -45,9 +45,10 @@ public class ProfileController {
     }
 
     private ProfileService.ProfileData toProfileData(ProfileDto.ProfileRequest req) {
-        ProfileDto.Overview overview = req.overview() != null
-                ? req.overview()
-                : new ProfileDto.Overview(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        ProfileDto.BasicInfo basicInfo = req.basicInfo() != null ? req.basicInfo()
+                : new ProfileDto.BasicInfo(null, null, null, null, null, null, null);
+        ProfileDto.Overview overview = req.overview() != null ? req.overview()
+                : new ProfileDto.Overview(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         ProfileDto.Destruction destruction = req.destruction() != null ? req.destruction() : new ProfileDto.Destruction(null, null);
         ProfileDto.EmploymentRetention employment = req.employmentRetention() != null ? req.employmentRetention() : new ProfileDto.EmploymentRetention(null, null);
         ProfileDto.PartnerContactHandling partner = req.partnerContactHandling() != null ? req.partnerContactHandling() : new ProfileDto.PartnerContactHandling(null, null);
@@ -63,18 +64,33 @@ public class ProfileController {
         ProfileDto.CctvAdditional cctvAdditional = req.cctvAdditional() != null ? req.cctvAdditional() : new ProfileDto.CctvAdditional(null, null);
         ProfileDto.AccessLogInfo accessLogInfo = req.accessLogInfo() != null ? req.accessLogInfo() : new ProfileDto.AccessLogInfo(null);
         ProfileDto.JuminInfo juminInfo = req.juminInfo() != null ? req.juminInfo() : new ProfileDto.JuminInfo(null);
-        ProfileDto.ProvisionInfo provisionInfo = req.provisionInfo() != null ? req.provisionInfo() : new ProfileDto.ProvisionInfo(null, null);
+        ProfileDto.ProvisionInfo provisionInfo = req.provisionInfo() != null ? req.provisionInfo() : new ProfileDto.ProvisionInfo(null, null, null, null);
         ProfileDto.InternalPlanInfo internalPlanInfo = req.internalPlanInfo() != null ? req.internalPlanInfo() : new ProfileDto.InternalPlanInfo(null, null);
+        ProfileDto.FuturePlan futurePlan = req.futurePlan() != null ? req.futurePlan() : new ProfileDto.FuturePlan(null, null, null, null, null);
+        ProfileDto.CctvExtra cctvExtra = req.cctvExtra() != null ? req.cctvExtra() : new ProfileDto.CctvExtra(null, null, null, null, null, null);
+        ProfileDto.MarketingExtra marketingExtra = req.marketingExtra() != null ? req.marketingExtra() : new ProfileDto.MarketingExtra(null, null);
 
         return new ProfileService.ProfileData(
+                basicInfo.companyName(),
+                basicInfo.representativeName(),
+                basicInfo.businessRegistrationNumber(),
+                basicInfo.entityType(),
+                basicInfo.foundingYear(),
+                basicInfo.companyPhone(),
+                basicInfo.companyAddress(),
                 overview.businessType(),
+                overview.industryDetail(),
                 overview.employeeCount(),
                 overview.annualRevenue(),
+                overview.largeAssets(),
+                overview.subjectRange(),
                 overview.personalDataItems(),
                 overview.hasPrivacyPolicy(),
                 overview.sensitiveDataTypes(),
+                overview.generalOther(),
                 overview.collectionMethods(),
                 overview.collectionPurposes(),
+                overview.marketingScope(),
                 overview.delegationStatus(),
                 overview.delegateeTypes(),
                 overview.overseasTransferStatus(),
@@ -113,9 +129,24 @@ public class ProfileController {
                 accessLogInfo.status(),
                 juminInfo.collectionGround(),
                 provisionInfo.status(),
+                provisionInfo.purpose(),
+                provisionInfo.recipients(),
                 provisionInfo.consentStatus(),
                 internalPlanInfo.status(),
-                internalPlanInfo.cycle()
+                internalPlanInfo.cycle(),
+                cctvExtra.websiteUrl(),
+                cctvExtra.appName(),
+                cctvExtra.marketplaceSource(),
+                cctvExtra.cctvLoc(),
+                cctvExtra.cctvLocOther(),
+                cctvExtra.cctvRetention(),
+                marketingExtra.channels(),
+                marketingExtra.consentTiming(),
+                futurePlan.plans(),
+                futurePlan.employees(),
+                futurePlan.revenue(),
+                futurePlan.subjectScale(),
+                futurePlan.newBiz()
         );
     }
 }

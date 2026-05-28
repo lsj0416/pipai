@@ -343,12 +343,24 @@ export default function MyPage() {
         const p = res.data;
         setForm(prev => {
           const patch: Partial<FormState> = {
+            s1_companyName: p.basicInfo.companyName ?? prev.s1_companyName,
+            s1_repName: p.basicInfo.representativeName ?? prev.s1_repName,
+            s1_bizNo: p.basicInfo.businessRegistrationNumber ?? prev.s1_bizNo,
+            s1_entityType: p.basicInfo.entityType ?? prev.s1_entityType,
+            s1_foundingYear: p.basicInfo.foundingYear ?? prev.s1_foundingYear,
+            s1_phone: p.basicInfo.companyPhone ?? prev.s1_phone,
+            s1_address: p.basicInfo.companyAddress ?? prev.s1_address,
             s3_industry: p.overview.businessType ?? prev.s3_industry,
+            s3_industryDetail: p.overview.industryDetail ?? prev.s3_industryDetail,
             s3_employees: p.overview.employeeCount != null ? String(p.overview.employeeCount) : prev.s3_employees,
             s3_revenue: p.overview.annualRevenue ?? prev.s3_revenue,
+            s3_largeAssets: p.overview.largeAssets ?? prev.s3_largeAssets,
+            s4_subjectRange: p.overview.subjectRange ?? prev.s4_subjectRange,
             s7_policy: p.overview.hasPrivacyPolicy === true ? 'yes' : p.overview.hasPrivacyPolicy === false ? 'no' : prev.s7_policy,
+            s4_generalOther: p.overview.generalOther ?? prev.s4_generalOther,
             s4_methods: csvToArray(p.overview.collectionMethods).length > 0 ? csvToArray(p.overview.collectionMethods) : prev.s4_methods,
             s4_purposes: csvToArray(p.overview.collectionPurposes).length > 0 ? csvToArray(p.overview.collectionPurposes) : prev.s4_purposes,
+            s4_marketingScope: csvToArray(p.overview.marketingScope).length > 0 ? csvToArray(p.overview.marketingScope) : prev.s4_marketingScope,
             s5_delegation: p.overview.delegationStatus ?? prev.s5_delegation,
             s5_delegatees: csvToArray(p.overview.delegateeTypes).length > 0 ? csvToArray(p.overview.delegateeTypes) : prev.s5_delegatees,
             s5_overseas: p.overview.overseasTransferStatus ?? prev.s5_overseas,
@@ -386,9 +398,24 @@ export default function MyPage() {
             s7_accessLog: p.accessLogInfo.status ?? prev.s7_accessLog,
             s4_juminGround: p.juminInfo.collectionGround ?? prev.s4_juminGround,
             s5_provision: p.provisionInfo.status ?? prev.s5_provision,
+            s5_provisionPurpose: p.provisionInfo.purpose ?? prev.s5_provisionPurpose,
+            s5_provisionRecipients: csvToArray(p.provisionInfo.recipients).length > 0 ? csvToArray(p.provisionInfo.recipients) : prev.s5_provisionRecipients,
             s5_provisionConsent: p.provisionInfo.consentStatus ?? prev.s5_provisionConsent,
             s7_internalPlan: p.internalPlanInfo.status ?? prev.s7_internalPlan,
             s7_internalPlanCycle: p.internalPlanInfo.cycle ?? prev.s7_internalPlanCycle,
+            s9_plans: csvToArray(p.futurePlan.plans).length > 0 ? csvToArray(p.futurePlan.plans) : prev.s9_plans,
+            s9_employees: p.futurePlan.employees ?? prev.s9_employees,
+            s9_revenue: p.futurePlan.revenue ?? prev.s9_revenue,
+            s9_subjectScale: p.futurePlan.subjectScale ?? prev.s9_subjectScale,
+            s9_newBiz: p.futurePlan.newBiz ?? prev.s9_newBiz,
+            s6_websiteUrl: p.cctvExtra.websiteUrl ?? prev.s6_websiteUrl,
+            s6_appName: p.cctvExtra.appName ?? prev.s6_appName,
+            s6_marketplaceSource: p.cctvExtra.marketplaceSource ?? prev.s6_marketplaceSource,
+            s6_cctvLoc: csvToArray(p.cctvExtra.cctvLoc).length > 0 ? csvToArray(p.cctvExtra.cctvLoc) : prev.s6_cctvLoc,
+            s6_cctvLocOther: p.cctvExtra.cctvLocOther ?? prev.s6_cctvLocOther,
+            s6_cctvRetention: p.cctvExtra.cctvRetention ?? prev.s6_cctvRetention,
+            s8_channels: csvToArray(p.marketingExtra.channels).length > 0 ? csvToArray(p.marketingExtra.channels) : prev.s8_channels,
+            s8_consentTiming: p.marketingExtra.consentTiming ?? prev.s8_consentTiming,
           };
           if (p.delegationContracts.contractPerType) {
             try {
@@ -423,15 +450,29 @@ export default function MyPage() {
         allDataItems.push(form.s4_generalOther);
       }
       await upsertProfile(token, {
+        basicInfo: {
+          companyName: form.s1_companyName || null,
+          representativeName: form.s1_repName || null,
+          businessRegistrationNumber: form.s1_bizNo || null,
+          entityType: form.s1_entityType || null,
+          foundingYear: form.s1_foundingYear || null,
+          companyPhone: form.s1_phone || null,
+          companyAddress: form.s1_address || null,
+        },
         overview: {
           businessType: form.s3_industry || null,
+          industryDetail: form.s3_industryDetail || null,
           employeeCount: parseInt(form.s3_employees) || null,
           annualRevenue: form.s3_revenue || null,
+          largeAssets: form.s3_largeAssets || null,
+          subjectRange: form.s4_subjectRange || null,
           personalDataItems: allDataItems.join(',') || null,
           hasPrivacyPolicy: form.s7_policy === 'yes' ? true : form.s7_policy === 'no' ? false : null,
           sensitiveDataTypes: form.s4_sensitive.join(',') || null,
+          generalOther: form.s4_generalOther || null,
           collectionMethods: form.s4_methods.join(',') || null,
           collectionPurposes: form.s4_purposes.join(',') || null,
+          marketingScope: form.s4_marketingScope.join(',') || null,
           delegationStatus: form.s5_delegation || null,
           delegateeTypes: form.s5_delegatees.join(',') || null,
           overseasTransferStatus: form.s5_overseas || null,
@@ -483,8 +524,32 @@ export default function MyPage() {
         cctvAdditional: { signageStatus: form.s6_cctvSignage || null, range: form.s6_cctvRange.join(',') || null },
         accessLogInfo: { status: form.s7_accessLog || null },
         juminInfo: { collectionGround: form.s4_juminGround || null },
-        provisionInfo: { status: form.s5_provision || null, consentStatus: form.s5_provisionConsent || null },
+        provisionInfo: {
+          status: form.s5_provision || null,
+          purpose: form.s5_provisionPurpose || null,
+          recipients: form.s5_provisionRecipients.join(',') || null,
+          consentStatus: form.s5_provisionConsent || null,
+        },
         internalPlanInfo: { status: form.s7_internalPlan || null, cycle: form.s7_internalPlanCycle || null },
+        futurePlan: {
+          plans: form.s9_plans.join(',') || null,
+          employees: form.s9_employees || null,
+          revenue: form.s9_revenue || null,
+          subjectScale: form.s9_subjectScale || null,
+          newBiz: form.s9_newBiz || null,
+        },
+        cctvExtra: {
+          websiteUrl: form.s6_websiteUrl || null,
+          appName: form.s6_appName || null,
+          marketplaceSource: form.s6_marketplaceSource || null,
+          cctvLoc: form.s6_cctvLoc.join(',') || null,
+          cctvLocOther: form.s6_cctvLocOther || null,
+          cctvRetention: form.s6_cctvRetention || null,
+        },
+        marketingExtra: {
+          channels: form.s8_channels.join(',') || null,
+          consentTiming: form.s8_consentTiming || null,
+        },
       });
       localStorage.setItem('dashboardNeedsRefresh', 'true');
       setSavedMsg('저장되었어요!');
@@ -498,7 +563,7 @@ export default function MyPage() {
 
   const handleNext = async () => {
     if (!isStepValid(step, form)) return;
-    if (step >= 1) await saveToBackend();
+    await saveToBackend();
     if (step < SECTIONS.length - 1) setStep(s => s + 1);
   };
 
@@ -971,6 +1036,45 @@ export default function MyPage() {
                           {warn && form.s5_contractPerType[v] === cv && <WarnBadge text="위반 가능성" />}
                         </label>
                       ))}
+                      {v === '클라우드 서비스 (AWS, GCP 등)' && (
+                        <div style={{ width: '100%', marginTop: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+                          <span style={{ fontSize: 11, color: 'var(--fg-3)', display: 'block', marginBottom: 4, fontWeight: 600 }}>클라우드 서버 위치</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {['국내 서버만 사용', '국외 서버 포함 사용', '혼합 사용 (국내+국외)', '모르겠음'].map(loc => (
+                              <label key={loc} style={{ ...radioLabel, fontSize: 13 }}>
+                                <input type="radio" name="b10ServerLocation" value={loc}
+                                  checked={form.s5_b10_serverLocation === loc}
+                                  onChange={() => set({ s5_b10_serverLocation: loc, ...(!loc.includes('국외') && loc !== '혼합 사용 (국내+국외)' ? { s5_b10_country: '' } : {}) })} />
+                                {loc}
+                                {loc === '모르겠음' && form.s5_b10_serverLocation === loc && <WarnBadge text="서버 위치 확인 권장" />}
+                              </label>
+                            ))}
+                            {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && form.s5_overseas === 'no' && (
+                              <div style={{ marginTop: 6, fontSize: 12, color: '#854D0E', background: '#FEF9C3', padding: '6px 10px', borderRadius: 6 }}>
+                                ⚠ 국외 서버 사용과 국외 이전 &lsquo;이전 안 됨&rsquo; 선택이 상충합니다. 내용을 확인해 주세요.
+                              </div>
+                            )}
+                          </div>
+                          {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && (
+                            <div style={{ marginTop: 8 }}>
+                              <span style={{ fontSize: 11, color: 'var(--fg-3)', display: 'block', marginBottom: 4, fontWeight: 600 }}>국외 서버 소재 국가</span>
+                              <input style={inputStyle} value={form.s5_b10_country}
+                                onChange={e => set({ s5_b10_country: e.target.value })}
+                                placeholder="예: 미국, 일본, 싱가포르" />
+                              {/EU|유럽|독일|프랑스|영국|이탈리아|스페인|네덜란드|폴란드|벨기에|스위스|오스트리아/i.test(form.s5_b10_country) && (
+                                <div style={{ marginTop: 6, fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                                  ℹ EU·EEA 국가 포함 시 GDPR이 추가 적용될 수 있습니다. 표준계약조항(SCC) 체결 여부를 확인하세요.
+                                </div>
+                              )}
+                              {/일본/i.test(form.s5_b10_country) && (
+                                <div style={{ marginTop: 6, fontSize: 12, color: '#15803D', background: '#F0FDF4', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
+                                  ℹ 일본은 EU GDPR 적정성 인정국입니다. 국내 개인정보보호법 제28조의8 이전 근거 요건을 확인하세요.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1024,47 +1128,6 @@ export default function MyPage() {
             </div>
           </div>
 
-          {form.s5_delegatees.includes('클라우드 서비스 (AWS, GCP 등)') && (
-            <div style={{ ...subIndent, marginTop: 16 }}>
-              <div style={fieldWrap}>
-                <label style={labelStyle}>클라우드 서버 위치</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {['국내 서버만 사용', '국외 서버 포함 사용', '혼합 사용 (국내+국외)', '모르겠음'].map(v => (
-                    <label key={v} style={radioLabel}>
-                      <input type="radio" name="b10ServerLocation" value={v}
-                        checked={form.s5_b10_serverLocation === v}
-                        onChange={() => set({ s5_b10_serverLocation: v, ...(!v.includes('국외') && v !== '혼합 사용 (국내+국외)' ? { s5_b10_country: '' } : {}) })} />
-                      {v}
-                      {v === '모르겠음' && form.s5_b10_serverLocation === v && <WarnBadge text="서버 위치 확인 권장" />}
-                    </label>
-                  ))}
-                  {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && form.s5_overseas === 'no' && (
-                    <div style={{ marginTop: 6, fontSize: 12, color: '#854D0E', background: '#FEF9C3', padding: '6px 10px', borderRadius: 6 }}>
-                      ⚠ 국외 서버 사용과 국외 이전 &lsquo;이전 안 됨&rsquo; 선택이 상충합니다. 내용을 확인해 주세요.
-                    </div>
-                  )}
-                </div>
-              </div>
-              {(form.s5_b10_serverLocation === '국외 서버 포함 사용' || form.s5_b10_serverLocation === '혼합 사용 (국내+국외)') && (
-                <div style={{ marginBottom: 0 }}>
-                  <label style={labelStyle}>국외 서버 소재 국가</label>
-                  <input style={inputStyle} value={form.s5_b10_country}
-                    onChange={e => set({ s5_b10_country: e.target.value })}
-                    placeholder="예: 미국, 일본, 싱가포르" />
-                  {/EU|유럽|독일|프랑스|영국|이탈리아|스페인|네덜란드|폴란드|벨기에|스위스|오스트리아/i.test(form.s5_b10_country) && (
-                    <div style={{ marginTop: 6, fontSize: 12, color: '#1D4ED8', background: '#EFF6FF', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
-                      ℹ EU·EEA 국가 포함 시 GDPR이 추가 적용될 수 있습니다. 표준계약조항(SCC) 체결 여부를 확인하세요.
-                    </div>
-                  )}
-                  {/일본/i.test(form.s5_b10_country) && (
-                    <div style={{ marginTop: 6, fontSize: 12, color: '#15803D', background: '#F0FDF4', padding: '6px 10px', borderRadius: 6, lineHeight: 1.5 }}>
-                      ℹ 일본은 EU GDPR 적정성 인정국입니다. 국내 개인정보보호법 제28조의8 이전 근거 요건을 확인하세요.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 

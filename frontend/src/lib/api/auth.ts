@@ -57,7 +57,6 @@ export async function refresh(body: RefreshRequest): Promise<ApiResponse<LoginRe
 export async function logout(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('pipai_mypage_form');
   }
   await fetch('/api/auth/token', { method: 'DELETE' });
 }

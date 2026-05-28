@@ -24,8 +24,34 @@ public class CompanyProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
+    // ── 기본정보 (s1) ──────────────────────────────────────────────────────────
+    @Column(length = 200)
+    private String companyName;
+
+    @Column(length = 100)
+    private String representativeName;
+
+    @Column(length = 20)
+    private String businessRegistrationNumber;
+
+    @Column(length = 50)
+    private String entityType;
+
+    @Column(length = 20)
+    private String foundingYear;
+
+    @Column(length = 50)
+    private String companyPhone;
+
+    @Column(length = 500)
+    private String companyAddress;
+
+    // ── 사업 개요 (s3) ─────────────────────────────────────────────────────────
     @Column(length = 100)
     private String businessType;  // 업종
+
+    @Column(length = 200)
+    private String industryDetail;
 
     @Column
     private Integer employeeCount;
@@ -33,9 +59,18 @@ public class CompanyProfile {
     @Column(length = 50)
     private String annualRevenue;  // 매출 규모
 
+    @Column(length = 50)
+    private String largeAssets;
+
+    @Column(length = 100)
+    private String subjectRange;
+
     // 수집 개인정보 항목 (콤마 구분)
     @Column(columnDefinition = "text")
     private String personalDataItems;
+
+    @Column(length = 200)
+    private String generalOther;
 
     // 개인정보처리방침 보유 여부
     @Column
@@ -51,6 +86,9 @@ public class CompanyProfile {
 
     @Column(columnDefinition = "text")
     private String collectionPurposes;
+
+    @Column(columnDefinition = "text")
+    private String marketingScope;
 
     @Column(length = 30)
     private String delegationStatus;
@@ -167,6 +205,12 @@ public class CompanyProfile {
     @Column(length = 20)
     private String provisionStatus;
 
+    @Column(columnDefinition = "text")
+    private String provisionPurpose;
+
+    @Column(columnDefinition = "text")
+    private String provisionRecipients;
+
     @Column(length = 20)
     private String provisionConsentStatus;
 
@@ -175,6 +219,48 @@ public class CompanyProfile {
 
     @Column(length = 30)
     private String internalPlanCycle;
+
+    // ── 운영 환경 추가 (s6) ────────────────────────────────────────────────────
+    @Column(length = 500)
+    private String websiteUrl;
+
+    @Column(length = 200)
+    private String appName;
+
+    @Column(length = 200)
+    private String marketplaceSource;
+
+    @Column(columnDefinition = "text")
+    private String cctvLoc;
+
+    @Column(length = 200)
+    private String cctvLocOther;
+
+    @Column(length = 100)
+    private String cctvRetention;
+
+    // ── 마케팅 추가 (s8) ───────────────────────────────────────────────────────
+    @Column(columnDefinition = "text")
+    private String marketingChannels;
+
+    @Column(length = 100)
+    private String marketingConsentTiming;
+
+    // ── 미래 계획 (s9) ─────────────────────────────────────────────────────────
+    @Column(columnDefinition = "text")
+    private String futurePlans;
+
+    @Column(length = 50)
+    private String futureEmployees;
+
+    @Column(length = 50)
+    private String futureRevenue;
+
+    @Column(length = 100)
+    private String futureSubjectScale;
+
+    @Column(length = 100)
+    private String newBiz;
 
     // AI 전용 누적 상담 요약 메모 (사용자에게 비노출)
     @Column(columnDefinition = "text")
@@ -190,34 +276,54 @@ public class CompanyProfile {
         return profile;
     }
 
-    public void update(String businessType, Integer employeeCount, String annualRevenue,
-                       String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes,
-                       String collectionMethods, String collectionPurposes, String delegationStatus,
-                       String delegateeTypes, String overseasTransferStatus, String overseasTransferCountry,
-                       String cctvOperationStatus, String systemStatus, String encryptionStatus,
-                       String destructionPolicyStatus, String destructionMethods,
-                       String employmentDocumentRetention, String formerEmployeeDestructionTiming,
-                       String partnerContactDbRegistration, String partnerContactRetention,
-                       String privacyPolicyIncludedItems, String delegateeDisclosureStatus,
-                       String delegateeAuditStatus, String delegateeEducationStatus,
-                       String cloudServerLocation, String overseasServerCountry,
-                       String cctvExternalProvision, String cctvAccessControl,
-                       String encryptedDataItems, String accessControlSeparation,
-                       String retiredAccessRevocation, String accessChangeHistoryStatus,
-                       String cpoStatus, String cpoTitle, String operatingChannels, String privacyPolicyUrl,
-                       String contractPerType, String marketingStatus, String marketingConsentType,
-                       String marketingNightSend, String cctvSignageStatus, String cctvRange,
-                       String accessLogStatus, String juminCollectionGround,
-                       String provisionStatus, String provisionConsentStatus,
-                       String internalPlanStatus, String internalPlanCycle) {
+    public void update(
+            String companyName, String representativeName, String businessRegistrationNumber,
+            String entityType, String foundingYear, String companyPhone, String companyAddress,
+            String businessType, String industryDetail, Integer employeeCount, String annualRevenue, String largeAssets,
+            String subjectRange, String personalDataItems, Boolean hasPrivacyPolicy, String sensitiveDataTypes,
+            String generalOther, String collectionMethods, String collectionPurposes, String marketingScope,
+            String delegationStatus, String delegateeTypes, String overseasTransferStatus, String overseasTransferCountry,
+            String cctvOperationStatus, String systemStatus, String encryptionStatus,
+            String destructionPolicyStatus, String destructionMethods,
+            String employmentDocumentRetention, String formerEmployeeDestructionTiming,
+            String partnerContactDbRegistration, String partnerContactRetention,
+            String privacyPolicyIncludedItems, String delegateeDisclosureStatus,
+            String delegateeAuditStatus, String delegateeEducationStatus,
+            String cloudServerLocation, String overseasServerCountry,
+            String cctvExternalProvision, String cctvAccessControl,
+            String encryptedDataItems, String accessControlSeparation,
+            String retiredAccessRevocation, String accessChangeHistoryStatus,
+            String cpoStatus, String cpoTitle, String operatingChannels, String privacyPolicyUrl,
+            String contractPerType, String marketingStatus, String marketingConsentType,
+            String marketingNightSend, String cctvSignageStatus, String cctvRange,
+            String accessLogStatus, String juminCollectionGround,
+            String provisionStatus, String provisionPurpose, String provisionRecipients, String provisionConsentStatus,
+            String internalPlanStatus, String internalPlanCycle,
+            String websiteUrl, String appName, String marketplaceSource,
+            String cctvLoc, String cctvLocOther, String cctvRetention,
+            String marketingChannels, String marketingConsentTiming,
+            String futurePlans, String futureEmployees, String futureRevenue,
+            String futureSubjectScale, String newBiz) {
+        this.companyName = companyName;
+        this.representativeName = representativeName;
+        this.businessRegistrationNumber = businessRegistrationNumber;
+        this.entityType = entityType;
+        this.foundingYear = foundingYear;
+        this.companyPhone = companyPhone;
+        this.companyAddress = companyAddress;
         this.businessType = businessType;
+        this.industryDetail = industryDetail;
         this.employeeCount = employeeCount;
         this.annualRevenue = annualRevenue;
+        this.largeAssets = largeAssets;
+        this.subjectRange = subjectRange;
         this.personalDataItems = personalDataItems;
         this.hasPrivacyPolicy = hasPrivacyPolicy;
         this.sensitiveDataTypes = sensitiveDataTypes;
+        this.generalOther = generalOther;
         this.collectionMethods = collectionMethods;
         this.collectionPurposes = collectionPurposes;
+        this.marketingScope = marketingScope;
         this.delegationStatus = delegationStatus;
         this.delegateeTypes = delegateeTypes;
         this.overseasTransferStatus = overseasTransferStatus;
@@ -256,9 +362,24 @@ public class CompanyProfile {
         this.accessLogStatus = accessLogStatus;
         this.juminCollectionGround = juminCollectionGround;
         this.provisionStatus = provisionStatus;
+        this.provisionPurpose = provisionPurpose;
+        this.provisionRecipients = provisionRecipients;
         this.provisionConsentStatus = provisionConsentStatus;
         this.internalPlanStatus = internalPlanStatus;
         this.internalPlanCycle = internalPlanCycle;
+        this.websiteUrl = websiteUrl;
+        this.appName = appName;
+        this.marketplaceSource = marketplaceSource;
+        this.cctvLoc = cctvLoc;
+        this.cctvLocOther = cctvLocOther;
+        this.cctvRetention = cctvRetention;
+        this.marketingChannels = marketingChannels;
+        this.marketingConsentTiming = marketingConsentTiming;
+        this.futurePlans = futurePlans;
+        this.futureEmployees = futureEmployees;
+        this.futureRevenue = futureRevenue;
+        this.futureSubjectScale = futureSubjectScale;
+        this.newBiz = newBiz;
     }
 
     public void patchField(String field, String value) {
@@ -314,6 +435,33 @@ public class CompanyProfile {
             case "provisionConsentStatus" -> this.provisionConsentStatus = value;
             case "internalPlanStatus" -> this.internalPlanStatus = value;
             case "internalPlanCycle" -> this.internalPlanCycle = value;
+            case "companyName" -> this.companyName = value;
+            case "representativeName" -> this.representativeName = value;
+            case "businessRegistrationNumber" -> this.businessRegistrationNumber = value;
+            case "entityType" -> this.entityType = value;
+            case "foundingYear" -> this.foundingYear = value;
+            case "companyPhone" -> this.companyPhone = value;
+            case "companyAddress" -> this.companyAddress = value;
+            case "industryDetail" -> this.industryDetail = value;
+            case "largeAssets" -> this.largeAssets = value;
+            case "subjectRange" -> this.subjectRange = value;
+            case "generalOther" -> this.generalOther = value;
+            case "marketingScope" -> this.marketingScope = value;
+            case "provisionPurpose" -> this.provisionPurpose = value;
+            case "provisionRecipients" -> this.provisionRecipients = value;
+            case "websiteUrl" -> this.websiteUrl = value;
+            case "appName" -> this.appName = value;
+            case "marketplaceSource" -> this.marketplaceSource = value;
+            case "cctvLoc" -> this.cctvLoc = value;
+            case "cctvLocOther" -> this.cctvLocOther = value;
+            case "cctvRetention" -> this.cctvRetention = value;
+            case "marketingChannels" -> this.marketingChannels = value;
+            case "marketingConsentTiming" -> this.marketingConsentTiming = value;
+            case "futurePlans" -> this.futurePlans = value;
+            case "futureEmployees" -> this.futureEmployees = value;
+            case "futureRevenue" -> this.futureRevenue = value;
+            case "futureSubjectScale" -> this.futureSubjectScale = value;
+            case "newBiz" -> this.newBiz = value;
         }
     }
 
