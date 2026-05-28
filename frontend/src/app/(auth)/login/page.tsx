@@ -26,6 +26,7 @@ export default function LoginPage() {
       const res = await login({ email, password });
       if (res.success && res.data) {
         localStorage.setItem('accessToken', res.data.accessToken);
+        localStorage.removeItem('pipai_mypage_form');
         await fetch('/api/auth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
