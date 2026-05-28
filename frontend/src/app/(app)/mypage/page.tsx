@@ -303,6 +303,7 @@ export default function MyPage() {
   const [viewMode, setViewMode] = useState<'form' | 'summary'>('summary');
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [showOnboardingBanner, setShowOnboardingBanner] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const set = (patch: Partial<FormState>) => setForm(prev => ({ ...prev, ...patch }));
 
@@ -316,19 +317,24 @@ export default function MyPage() {
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!profileLoaded) return;
     const hasData = !!form.s1_companyName;
-    if (hasData) return;
+    if (hasData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOnboardingModal(false);
+       
+      setShowOnboardingBanner(false);
+      return;
+    }
     const dismissed = sessionStorage.getItem('pipai_onboarding_dismissed');
     if (!dismissed) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setShowOnboardingModal(true);
     } else {
        
       setShowOnboardingBanner(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted]);
+  }, [profileLoaded, form.s1_companyName]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -350,8 +356,15 @@ export default function MyPage() {
   useEffect(() => {
     if (!mounted) return;
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfileLoaded(true);
+      return;
+    }
     getProfile(token).then(res => {
+      if (!res.success) {
+        setError('프로필 정보를 불러오지 못했어요. 새로고침해 주세요.');
+      }
       if (res.success && res.data) {
         const p = res.data;
         setForm(prev => {
@@ -449,7 +462,11 @@ export default function MyPage() {
           return { ...prev, ...patch };
         });
       }
-    }).catch(() => {});
+      setProfileLoaded(true);
+    }).catch(() => {
+      setError('서버에 연결할 수 없어요. 새로고침해 주세요.');
+      setProfileLoaded(true);
+    });
   }, [mounted]);
 
   const saveToBackend = async () => {
