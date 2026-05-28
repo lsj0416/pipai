@@ -3,10 +3,6 @@
     {
       "source": "/api/auth/token",
       "destination": "/api/auth/token"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "http://pipai-alb-856110834.ap-northeast-2.elb.amazonaws.com/api/:path*"
     }
   ]
 }
