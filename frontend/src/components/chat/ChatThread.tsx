@@ -61,29 +61,34 @@ const EXPERT_CHANNELS = [
   { label: '자가진단 서비스', href: 'https://privacy.go.kr' },
 ];
 
-function MessageFooter({ showInquiry, onInquiry }: { showInquiry: boolean; onInquiry?: () => void }) {
+function MessageFooter({ showDisclaimer, showInquiry, onInquiry }: { showDisclaimer: boolean; showInquiry: boolean; onInquiry?: () => void }) {
+  if (!showDisclaimer && !showInquiry) return null;
   return (
     <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 10, paddingTop: 10 }}>
-      <p style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6, margin: '0 0 10px' }}>
-        이 답변은 참고용이며, 법적 효력이 없습니다.<br />
-        중요한 사항은 반드시 전문가와 상담하세요.
-      </p>
-      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', marginBottom: 6 }}>전문가 지원 채널</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: showInquiry ? 12 : 0 }}>
-        {EXPERT_CHANNELS.map(({ label, href }) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>· {label}</span>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 11, color: 'var(--gok-blue)', fontWeight: 600, textDecoration: 'none' }}
-            >
-              바로가기
-            </a>
+      {showDisclaimer && (
+        <>
+          <p style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6, margin: '0 0 10px' }}>
+            ⚠️ 이 답변은 참고용이며, 법적 효력이 없습니다.<br />
+            중요한 사항은 반드시 전문가와 상담하세요.
+          </p>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', marginBottom: 6 }}>전문가 지원 채널</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: showInquiry ? 12 : 0 }}>
+            {EXPERT_CHANNELS.map(({ label, href }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>· {label}</span>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: 'var(--gok-blue)', fontWeight: 600, textDecoration: 'none' }}
+                >
+                  바로가기
+                </a>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
       {showInquiry && onInquiry && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
           <InquiryButton onClick={onInquiry} />
@@ -113,6 +118,7 @@ function renderPart(p: MessagePart, j: number): React.ReactElement | null {
 
 export default function ChatThread({ messages, onPickQuick, onInquiry, streaming }: ChatThreadProps) {
   const lastAssistantIdx = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+  const firstAssistantIdx = messages.findIndex(m => m.role === 'assistant');
   const hasUserMessage = messages.some(m => m.role === 'user');
 
   return (
@@ -128,15 +134,14 @@ export default function ChatThread({ messages, onPickQuick, onInquiry, streaming
         if (m.role === 'user') return <UserBubble key={i}>{m.content}</UserBubble>;
 
         const isLast = i === lastAssistantIdx;
-        const showFooter = hasUserMessage && (!isLast || !streaming);
+        const isFirst = i === firstAssistantIdx;
+        const showDisclaimer = isFirst && hasUserMessage && !(isLast && streaming);
         const showInquiry = isLast && !streaming;
 
         return (
           <AssistantMessage key={i}>
             {m.parts.map((p, j) => renderPart(p, j))}
-            {showFooter && (
-              <MessageFooter showInquiry={showInquiry} onInquiry={onInquiry} />
-            )}
+            <MessageFooter showDisclaimer={showDisclaimer} showInquiry={showInquiry} onInquiry={onInquiry} />
           </AssistantMessage>
         );
       })}

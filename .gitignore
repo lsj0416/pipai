@@ -61,3 +61,4 @@ pgdata/
 *.class
 !backend/gradle/wrapper/gradle-wrapper.jar
 .gstack/
+.vercel

@@ -54,7 +54,7 @@ public class Conversation {
         Conversation conv = new Conversation();
         conv.user = user;
         conv.title = title;
-        conv.conversationType = conversationType;
+        conv.conversationType = conversationType != null ? conversationType : "GENERAL";
         return conv;
     }
 

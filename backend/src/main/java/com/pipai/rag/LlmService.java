@@ -24,7 +24,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class LlmService {
 
-    private static final String DISCLAIMER = "\n\n⚠️ 이 답변은 참고용이며, 법적 효력이 없습니다. 중요한 사항은 반드시 전문가와 상담하세요.";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final WebClient webClient;
@@ -56,12 +55,8 @@ public class LlmService {
         messages.add(Map.of("role", "system", "content", systemPrompt));
 
         for (Message msg : history) {
-            String content = msg.getContent();
-            if (msg.getRole() == Message.Role.ASSISTANT) {
-                content = content.replace(DISCLAIMER, "").strip();
-            }
             String role = msg.getRole() == Message.Role.USER ? "user" : "assistant";
-            messages.add(Map.of("role", role, "content", content));
+            messages.add(Map.of("role", role, "content", msg.getContent()));
         }
 
         messages.add(Map.of("role", "user", "content", userMessage));
@@ -80,8 +75,7 @@ public class LlmService {
                 .filter(chunk -> !chunk.isBlank() && !chunk.contains("[DONE]"))
                 .map(this::extractContent)
                 .filter(content -> !content.isEmpty())
-                .onErrorMap(e -> new LlmException("LLM 스트리밍 실패", e))
-                .concatWith(Flux.just(DISCLAIMER));
+                .onErrorMap(e -> new LlmException("LLM 스트리밍 실패", e));
     }
 
     private enum QuestionType { LAW_INTERPRETATION, RISK_DIAGNOSIS, PROCEDURE_GUIDE }
@@ -232,11 +226,7 @@ public class LlmService {
 
         for (Message msg : history) {
             String role = msg.getRole() == Message.Role.USER ? "user" : "assistant";
-            String content = msg.getContent();
-            if (msg.getRole() == Message.Role.ASSISTANT) {
-                content = content.replace(DISCLAIMER, "").strip();
-            }
-            messages.add(Map.of("role", role, "content", content));
+            messages.add(Map.of("role", role, "content", msg.getContent()));
         }
         messages.add(Map.of("role", "user", "content", userMessage));
 
@@ -250,8 +240,7 @@ public class LlmService {
                 .filter(chunk -> !chunk.isBlank() && !chunk.contains("[DONE]"))
                 .map(this::extractContent)
                 .filter(content -> !content.isEmpty())
-                .onErrorMap(e -> new LlmException("프로필 작성 도우미 스트리밍 실패", e))
-                .concatWith(Flux.just(DISCLAIMER));
+                .onErrorMap(e -> new LlmException("프로필 작성 도우미 스트리밍 실패", e));
     }
 
     private String buildProfileFillSystemPrompt(CompanyProfile profile) {
