@@ -2,8 +2,8 @@
   "family": "pipai-backend",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
+  "cpu": "256",
+  "memory": "512",
   "executionRoleArn": "arn:aws:iam::257016720527:role/pipai-ecs-execution-role",
   "taskRoleArn": "arn:aws:iam::257016720527:role/pipai-ecs-task-role",
   "containerDefinitions": [
