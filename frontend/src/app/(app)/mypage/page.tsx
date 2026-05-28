@@ -126,6 +126,19 @@ const INIT: FormState = {
 
 const STORAGE_KEY = 'pipai_mypage_form';
 
+function getMypageStorageKey(): string {
+  if (typeof window === 'undefined') return STORAGE_KEY;
+  const token = localStorage.getItem('accessToken');
+  if (!token) return STORAGE_KEY;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const userId: string | undefined = payload.sub ?? payload.userId ?? payload.id;
+    return userId ? `${STORAGE_KEY}_${userId}` : STORAGE_KEY;
+  } catch {
+    return STORAGE_KEY;
+  }
+}
+
 const csvToArray = (value: string | null | undefined): string[] =>
   value ? value.split(',').map(v => v.trim()).filter(Boolean) : [];
 
@@ -297,7 +310,7 @@ export default function MyPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(getMypageStorageKey());
       if (saved) setForm({ ...INIT, ...JSON.parse(saved) as Partial<FormState> });
     } catch {}
   }, []);
@@ -319,7 +332,7 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    localStorage.setItem(getMypageStorageKey(), JSON.stringify(form));
   }, [form, mounted]);
 
   useEffect(() => {
