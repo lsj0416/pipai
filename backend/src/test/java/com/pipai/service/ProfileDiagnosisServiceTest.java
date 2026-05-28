@@ -47,9 +47,10 @@ class ProfileDiagnosisServiceTest {
     void rediagnose_createsAllHighOrCheckNeededRisksForBadProfile() {
         CompanyProfile profile = CompanyProfile.create(user);
         profile.update(
-                "정보통신업", 12, "10억 ~ 30억원 미만",
-                "성명,연락처(전화번호)", false, "건강·의료정보",
-                "오프라인 서면 작성,이메일·메신저", "채용·인사 관리",
+                null, null, null, null, null, null, null,
+                "정보통신업", null, 12, "10억 ~ 30억원 미만", null,
+                null, "성명,연락처(전화번호)", false, "건강·의료정보", null,
+                "오프라인 서면 작성,이메일·메신저", "채용·인사 관리", null,
                 "yes", "클라우드 서비스 (AWS, GCP 등)", "no", null,
                 "yes", "보유함 (CRM, ERP, 회원관리 시스템 등)", "암호화 안 함",
                 "별도 파기 절차 없음", "별도 방법 없음",
@@ -62,7 +63,14 @@ class ProfileDiagnosisServiceTest {
                 "암호화 항목 없음", "분리되어 있지 않음 (공용 계정)", "회수하지 않음", "기록하지 않음",
                 null, null, null, null, null,
                 null, null, null, null, null,
-                null, null, null, null, null, null
+                null, null,
+                null, null, null, null,
+                null, null,
+                null, null, null,
+                null, null, null,
+                null, null,
+                null, null, null,
+                null, null
         );
 
         when(riskRepository.findByUserIdAndSourceTypeAndDiagnosisCode(eq(user.getId()), eq(RiskChecklistItem.SourceType.PROFILE), anyString()))
@@ -92,9 +100,10 @@ class ProfileDiagnosisServiceTest {
     void rediagnose_marksAllRisksGoodOrExemptForWellManagedProfile() {
         CompanyProfile profile = CompanyProfile.create(user);
         profile.update(
-                "도매·소매업", 8, "0 ~ 10억원 미만",
-                "성명,연락처(전화번호),이메일", true, null,
-                "회원가입,주문·결제", "서비스 제공 (계약 이행),마케팅·광고 (영리 목적)",
+                null, null, null, null, null, null, null,
+                "도매·소매업", null, 8, "0 ~ 10억원 미만", null,
+                null, "성명,연락처(전화번호),이메일", true, null, null,
+                "회원가입,주문·결제", "서비스 제공 (계약 이행),마케팅·광고 (영리 목적)", null,
                 "yes", "클라우드 서비스 (AWS, GCP 등)", "yes", "미국",
                 "yes", "보유함 (CRM, ERP, 회원관리 시스템 등)", "암호화 처리함",
                 "보유기간을 항목별로 관리하고 있음", "완전파괴 (소각·파쇄)",
@@ -111,8 +120,13 @@ class ProfileDiagnosisServiceTest {
                 "yes", "separate", "no",
                 "yes", "public",
                 "yes", null,
-                "no", null,
-                "yes", "annual"
+                "no", null, null, null,
+                "yes", "annual",
+                null, null, null,
+                null, null, null,
+                null, null,
+                null, null, null,
+                null, null
         );
 
         when(riskRepository.findByUserIdAndSourceTypeAndDiagnosisCode(eq(user.getId()), eq(RiskChecklistItem.SourceType.PROFILE), anyString()))
@@ -132,9 +146,10 @@ class ProfileDiagnosisServiceTest {
     void rediagnose_reopensResolvedProfileRiskWhenItBecomesRiskyAgain() {
         CompanyProfile profile = CompanyProfile.create(user);
         profile.update(
-                "정보통신업", 12, "10억 ~ 30억원 미만",
-                "성명,연락처(전화번호)", true, null,
-                "회원가입", "서비스 제공 (계약 이행)",
+                null, null, null, null, null, null, null,
+                "정보통신업", null, 12, "10억 ~ 30억원 미만", null,
+                null, "성명,연락처(전화번호)", true, null, null,
+                "회원가입", "서비스 제공 (계약 이행)", null,
                 "yes", "", "no", null,
                 "no", "엑셀·문서로만 관리", "모르겠음",
                 "모르겠음", null,
@@ -147,7 +162,14 @@ class ProfileDiagnosisServiceTest {
                 null, null, null, null,
                 null, null, null, null, null,
                 null, null, null, null, null,
-                null, null, null, null, null, null
+                null, null,
+                null, null, null, null,
+                null, null,
+                null, null, null,
+                null, null, null,
+                null, null,
+                null, null, null,
+                null, null
         );
 
         RiskChecklistItem existing = RiskChecklistItem.create(
