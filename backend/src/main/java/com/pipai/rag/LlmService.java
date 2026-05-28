@@ -6,6 +6,7 @@ import com.pipai.common.LocalEnvResolver;
 import com.pipai.common.exception.LlmException;
 import com.pipai.domain.CompanyProfile;
 import com.pipai.domain.Message;
+import com.pipai.service.DiagnosisFieldMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -48,8 +49,9 @@ public class LlmService {
     public Flux<String> streamAnswer(String userMessage, CompanyProfile profile,
                                      List<Map<String, Object>> lawRefs,
                                      List<Map<String, Object>> caseRefs,
-                                     List<Message> history) {
-        String systemPrompt = buildSystemPrompt(userMessage, profile, lawRefs, caseRefs);
+                                     List<Message> history,
+                                     List<DiagnosisFieldMapper.MissingField> missingFields) {
+        String systemPrompt = buildSystemPrompt(userMessage, profile, lawRefs, caseRefs, missingFields);
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemPrompt));
@@ -107,7 +109,8 @@ public class LlmService {
 
     private String buildSystemPrompt(String userMessage, CompanyProfile profile,
                                      List<Map<String, Object>> lawRefs,
-                                     List<Map<String, Object>> caseRefs) {
+                                     List<Map<String, Object>> caseRefs,
+                                     List<DiagnosisFieldMapper.MissingField> missingFields) {
         QuestionType type = classifyQuestion(userMessage);
         StringBuilder sb = new StringBuilder();
 
@@ -120,15 +123,17 @@ public class LlmService {
         sb.append("이 섹션의 정보를 가공 없이 항목별로 깔끔하게 정리해서 응답하세요.\n");
         sb.append("절대로 '마이페이지에 접근할 수 없다'거나 '개인정보 접근 권한이 없다'는 응답을 하지 마세요.\n\n");
 
-        // 미등록 핵심 정보 → AI가 자연스럽게 수집하도록 안내
-        List<String> missing = new ArrayList<>();
-        if (profile == null || !str(profile.getBusinessType())) missing.add("업종");
-        if (profile == null || profile.getEmployeeCount() == null) missing.add("직원 수");
-        if (!missing.isEmpty()) {
-            sb.append("## 기업 정보 미등록 항목\n");
-            sb.append("다음 정보가 아직 등록되지 않았습니다: ").append(String.join(", ", missing)).append("\n");
-            sb.append("답변 후 대화 흐름이 자연스럽다면 이 정보를 한 가지씩 질문해 주세요.\n");
-            sb.append("예: \"업종이 어떻게 되세요? 더 정확한 리스크 진단을 드릴 수 있어요.\"\n\n");
+        // 미확인 진단 필드 → AI가 대화 흐름 안에서 1~2개만 자연스럽게 질문하도록 안내
+        if (missingFields != null && !missingFields.isEmpty()) {
+            sb.append("--- [진단 정확도 향상을 위한 미확인 항목] ---\n");
+            sb.append("아래 정보가 아직 확인되지 않아 일부 진단이 불완전합니다.\n");
+            sb.append("대화 흐름에서 현재 답변 내용과 관련 있는 항목만 자연스럽게 1~2개 질문하세요.\n");
+            sb.append("절대 목록 형태로 한꺼번에 묻지 마세요.\n\n");
+            sb.append("미확인 항목 (진단코드 → 필요 정보):\n");
+            missingFields.forEach(mf ->
+                sb.append("- ").append(mf.diagnosisCode()).append(" 판정 필요: ").append(mf.label()).append("\n")
+            );
+            sb.append("\n");
         }
 
         if (profile != null) {
@@ -354,8 +359,71 @@ public class LlmService {
                 - encryptionStatus: "전부 암호화", "일부 암호화", "암호화 안 함", "모르겠음"
                 - systemStatus: "자체 운영", "SaaS 활용", "없음" (개인정보처리시스템 운영 형태)
                 - collectionPurposes: 해당하는 것을 쉼표로 구분 (서비스 제공, 채용·인사 관리, 마케팅·광고 (영리 목적), 민원 처리, 시설 안전·관리, 기타)
+                - personalDataItems: 수집하는 개인정보 항목 쉼표 구분 (예: "이름, 전화번호, 이메일")
+                - sensitiveDataTypes: 처리하는 민감정보 유형 쉼표 구분 (예: "건강정보, 생체정보")
+                - subjectRange: 개인정보 처리 정보주체 규모 (예: "1,000명 미만", "1만명 이상")
+                - cpoStatus: "yes" 또는 "no" (CPO/개인정보보호책임자 지정 여부. 예: '지정 안 했어요' → no)
+                - cpoTitle: CPO 직책 문자열 (예: "대표이사", "정보보호팀장")
+                - operatingChannels: 운영 채널 쉼표 구분 (예: "웹사이트, 앱")
+                - privacyPolicyUrl: 처리방침 URL 문자열
+                - contractPerType: 수탁자별 계약 형태 (예: "서면 계약", "구두 계약", "없음")
+                - marketingConsentType: "사전 동의", "사후 동의", "미확인" (마케팅 수신 동의 방식)
+                - marketingNightSend: "yes", "no" (야간 마케팅 발송 여부. 예: '밤에도 보내요' → yes)
+                - marketingChannels: 마케팅 채널 쉼표 구분 (예: "문자, 이메일, 카카오")
+                - accessLogStatus: "yes", "no" (접속기록 보관 여부)
+                - juminCollectionGround: 주민번호 수집 근거 (예: "법령 근거", "수집 안 함")
+                - provisionConsentStatus: "yes", "no" (제3자 제공 동의 수취 여부)
+                - internalPlanStatus: "yes", "no" (내부관리계획 수립 여부)
+                - internalPlanCycle: 내부관리계획 갱신 주기 (예: "연 1회", "없음")
+                - delegateeTypes: 수탁자 유형 쉼표 구분 (예: "배송사, 결제사")
+                - delegateeDisclosureStatus: "전체 공개", "일부 공개", "미공개" (처리방침 내 수탁자 공개)
+                - delegateeAuditStatus: 수탁자 점검 주기 (예: "연 1회", "없음")
+                - delegateeEducationStatus: "yes", "no" (수탁자 교육 실시 여부)
+                - cloudServerLocation: "국내", "해외", "혼합" (클라우드 서버 위치)
+                - overseasServerCountry: 국외 서버 소재 국가 (예: "미국", "일본")
+                - cctvSignageStatus: "yes", "no" (CCTV 안내판 설치 여부)
+                - cctvRange: CCTV 촬영 범위 (예: "출입구, 주차장")
+                - cctvExternalProvision: "yes", "no" (CCTV 영상 외부 제공 여부)
+                - cctvAccessControl: CCTV 접근 통제 방식 (예: "담당자 지정", "없음")
+                - encryptedDataItems: 암호화 적용 항목 쉼표 구분 (예: "비밀번호, 주민번호")
+                - accessControlSeparation: "yes", "no" (직원별 접근권한 분리 여부)
+                - retiredAccessRevocation: "yes", "no" (퇴직자 권한 회수 여부)
+                - accessChangeHistoryStatus: "yes", "no" (권한 변경 이력 기록 여부)
+                - formerEmployeeDestructionTiming: 퇴사자 개인정보 파기 시점 (예: "즉시", "1개월 이내", "없음")
+                - employmentDocumentRetention: 이력서 보관 기간 (예: "채용 후 파기", "3년 보관")
+                - partnerContactDbRegistration: "yes", "no" (거래처 연락처 DB 등록 여부)
+                - partnerContactRetention: 거래 종료 후 보관 (예: "즉시 파기", "1년 보관")
+                - destructionPolicyStatus: "yes", "no" (파기 절차 수립 여부)
+                - destructionMethods: 파기 방법 쉼표 구분 (예: "영구 삭제, 파쇄")
+                - privacyPolicyIncludedItems: 처리방침 포함 항목 쉼표 구분
+                - marketplaceSource: 오픈마켓 고객정보 수령 방식 (예: "API 연동", "수동 다운로드")
+                - futureEmployees: 향후 직원 변화 계획 (예: "증가 예정", "유지")
+                - futureRevenue: 향후 매출 변화 계획 (예: "성장 예정")
+                - futureSubjectScale: 향후 정보주체 규모 변화 (예: "증가 예정")
+                - newBiz: 향후 신규 사업/기술 도입 계획 (예: "AI 서비스 도입 예정", "없음")
 
-                예시 출력: {"businessType":"음식점업","employeeCount":"5","delegationStatus":"no"}
+                ## 발화 → 추출 예시 (반드시 이 패턴을 참고하세요)
+                "CPO 지정 안 했어요" → {"cpoStatus":"no"}
+                "개인정보보호책임자는 대표가 겸직해요" → {"cpoStatus":"yes","cpoTitle":"대표이사"}
+                "야간에 마케팅 문자 안 보내요" → {"marketingNightSend":"no"}
+                "밤 9시 이후에도 광고 문자 발송해요" → {"marketingNightSend":"yes"}
+                "접속기록 6개월 보관해요" → {"accessLogStatus":"yes"}
+                "접속기록 따로 안 남겨요" → {"accessLogStatus":"no"}
+                "AWS 한국 리전 써요" → {"cloudServerLocation":"국내"}
+                "서버가 미국에 있어요" → {"cloudServerLocation":"해외","overseasServerCountry":"미국"}
+                "내부관리계획 아직 없어요" → {"internalPlanStatus":"no"}
+                "내부관리계획은 매년 갱신해요" → {"internalPlanStatus":"yes","internalPlanCycle":"연 1회"}
+                "직원별 권한 분리 안 돼 있어요" → {"accessControlSeparation":"no"}
+                "CCTV 안내판 달아놨어요" → {"cctvSignageStatus":"yes"}
+                "CCTV 안내판 없어요" → {"cctvSignageStatus":"no"}
+                "제3자 제공 동의는 받고 있어요" → {"provisionConsentStatus":"yes"}
+                "퇴직하면 바로 계정 삭제해요" → {"retiredAccessRevocation":"yes","formerEmployeeDestructionTiming":"즉시"}
+                "이력서는 채용 후 바로 파기해요" → {"employmentDocumentRetention":"채용 후 파기"}
+                "파기 절차 정해진 게 없어요" → {"destructionPolicyStatus":"no"}
+                "수탁사 정보를 처리방침에 다 공개했어요" → {"delegateeDisclosureStatus":"전체 공개"}
+                "마케팅 수신 동의는 가입할 때 사전에 받아요" → {"marketingConsentType":"사전 동의"}
+
+                예시 출력: {"businessType":"음식점업","employeeCount":"5","delegationStatus":"no","cpoStatus":"no"}
                 """;
 
         String userPrompt = (historyText.isBlank() ? "" : "대화 이력:\n" + historyText + "\n\n")

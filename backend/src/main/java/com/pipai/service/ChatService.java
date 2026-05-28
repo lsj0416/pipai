@@ -40,26 +40,10 @@ public class ChatService {
     private final RiskRepository riskRepository;
     private final ObjectMapper objectMapper;
     private final ProfileService profileService;
+    private final DiagnosisFieldMapper diagnosisFieldMapper;
 
     private static final int MAX_HISTORY = 20;
 
-    private static final Map<String, String> FIELD_LABELS = Map.ofEntries(
-            Map.entry("businessType", "업종"),
-            Map.entry("employeeCount", "직원 수"),
-            Map.entry("annualRevenue", "연 매출"),
-            Map.entry("hasPrivacyPolicy", "개인정보처리방침"),
-            Map.entry("delegationStatus", "처리 위탁 여부"),
-            Map.entry("cctvOperationStatus", "CCTV 운영 여부"),
-            Map.entry("marketingStatus", "마케팅 발송 여부"),
-            Map.entry("provisionStatus", "제3자 제공 여부"),
-            Map.entry("encryptionStatus", "암호화 현황"),
-            Map.entry("systemStatus", "개인정보처리시스템"),
-            Map.entry("overseasTransferStatus", "국외 이전 여부"),
-            Map.entry("collectionPurposes", "수집 목적"),
-            Map.entry("collectionMethods", "수집 방법"),
-            Map.entry("personalDataItems", "수집 항목"),
-            Map.entry("sensitiveDataTypes", "민감정보 유형")
-    );
 
     private static final Pattern EMP_PATTERN = Pattern.compile(
             "(?:직원|사원|임직원|알바(?:생)?)\\s*(\\d+)\\s*명|" +
@@ -293,7 +277,7 @@ public class ChatService {
                                         List<Map<String, String>> savedFields = toApply.entrySet().stream()
                                                 .map(e -> Map.of(
                                                         "field", e.getKey(),
-                                                        "label", FIELD_LABELS.getOrDefault(e.getKey(), e.getKey()),
+                                                        "label", DiagnosisFieldMapper.FIELD_LABELS.getOrDefault(e.getKey(), e.getKey()),
                                                         "value", e.getValue(),
                                                         "displayValue", e.getValue()
                                                 ))
@@ -338,7 +322,12 @@ public class ChatService {
         var optProfile = profileService.findProfile(userId);
         if (!hasMissingProfileFields(optProfile.orElse(null))) return;
 
-        List<Message> recentHistory = history.size() > 6 ? history.subList(history.size() - 6, history.size()) : history;
+        // AI 응답 텍스트에서 false-positive 추출 방지: USER 메시지만 전달
+        List<Message> userHistory = history.stream()
+                .filter(m -> m.getRole() == Message.Role.USER)
+                .collect(Collectors.toList());
+        int start = Math.max(0, userHistory.size() - 6);
+        List<Message> recentHistory = userHistory.subList(start, userHistory.size());
 
         ragPipeline.getLlmService().extractProfileFields(userMessage, recentHistory)
                 .subscribe(
@@ -365,32 +354,11 @@ public class ChatService {
     }
 
     private boolean hasMissingProfileFields(com.pipai.domain.CompanyProfile profile) {
-        if (profile == null) return true;
-        return profile.getBusinessType() == null
-                || profile.getEmployeeCount() == null
-                || profile.getAnnualRevenue() == null
-                || profile.getDelegationStatus() == null
-                || profile.getCctvOperationStatus() == null
-                || profile.getMarketingStatus() == null;
+        return !diagnosisFieldMapper.getMissingFields(profile).isEmpty();
     }
 
     private boolean isFieldEmpty(com.pipai.domain.CompanyProfile profile, String field) {
-        if (profile == null) return true;
-        return switch (field) {
-            case "businessType" -> profile.getBusinessType() == null || profile.getBusinessType().isBlank();
-            case "employeeCount" -> profile.getEmployeeCount() == null;
-            case "annualRevenue" -> profile.getAnnualRevenue() == null || profile.getAnnualRevenue().isBlank();
-            case "hasPrivacyPolicy" -> profile.getHasPrivacyPolicy() == null;
-            case "delegationStatus" -> profile.getDelegationStatus() == null || profile.getDelegationStatus().isBlank();
-            case "cctvOperationStatus" -> profile.getCctvOperationStatus() == null || profile.getCctvOperationStatus().isBlank();
-            case "marketingStatus" -> profile.getMarketingStatus() == null || profile.getMarketingStatus().isBlank();
-            case "overseasTransferStatus" -> profile.getOverseasTransferStatus() == null || profile.getOverseasTransferStatus().isBlank();
-            case "provisionStatus" -> profile.getProvisionStatus() == null || profile.getProvisionStatus().isBlank();
-            case "encryptionStatus" -> profile.getEncryptionStatus() == null || profile.getEncryptionStatus().isBlank();
-            case "systemStatus" -> profile.getSystemStatus() == null || profile.getSystemStatus().isBlank();
-            case "collectionPurposes" -> profile.getCollectionPurposes() == null || profile.getCollectionPurposes().isBlank();
-            default -> false;
-        };
+        return diagnosisFieldMapper.isFieldEmpty(profile, field);
     }
 
     private List<String> buildChecklistEvents(User user, List<Map<String, Object>> lawRefs) {
