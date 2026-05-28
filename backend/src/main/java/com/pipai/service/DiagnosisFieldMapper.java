@@ -4,8 +4,10 @@ import com.pipai.domain.CompanyProfile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 public class DiagnosisFieldMapper {
@@ -107,6 +109,46 @@ public class DiagnosisFieldMapper {
         Map.entry("collectionPurposes", "수집 목적")
     );
 
+    private static final Map<String, List<String>> KEYWORD_TO_CODES = Map.ofEntries(
+        Map.entry("cctv", List.of("A-04", "A-21", "B-05")),
+        Map.entry("카메라", List.of("A-04", "A-21", "B-05")),
+        Map.entry("마케팅", List.of("A-07", "A-10", "A-22")),
+        Map.entry("광고", List.of("A-07", "A-10")),
+        Map.entry("문자", List.of("A-07", "A-22")),
+        Map.entry("위탁", List.of("A-06", "A-12", "A-25", "B-01", "B-02", "B-11")),
+        Map.entry("수탁", List.of("A-06", "A-12", "B-01", "B-02", "B-11")),
+        Map.entry("외주", List.of("A-06", "A-12")),
+        Map.entry("cpo", List.of("A-02")),
+        Map.entry("책임자", List.of("A-02")),
+        Map.entry("개인정보보호책임자", List.of("A-02")),
+        Map.entry("암호화", List.of("A-20", "B-03")),
+        Map.entry("비밀번호", List.of("A-20", "B-03")),
+        Map.entry("처리방침", List.of("A-05", "A-18", "B-09")),
+        Map.entry("개인정보처리방침", List.of("A-05", "A-18", "B-09")),
+        Map.entry("국외", List.of("A-17", "B-10")),
+        Map.entry("해외", List.of("A-17", "B-10")),
+        Map.entry("접속기록", List.of("A-08")),
+        Map.entry("로그", List.of("A-08")),
+        Map.entry("제3자", List.of("A-16")),
+        Map.entry("파기", List.of("B-06", "B-07", "B-08")),
+        Map.entry("삭제", List.of("B-06", "B-08")),
+        Map.entry("주민번호", List.of("A-13")),
+        Map.entry("주민등록번호", List.of("A-13")),
+        Map.entry("민감정보", List.of("A-14")),
+        Map.entry("내부관리계획", List.of("A-19")),
+        Map.entry("접근권한", List.of("B-04")),
+        Map.entry("퇴직", List.of("B-04", "B-06")),
+        Map.entry("이력서", List.of("B-06")),
+        Map.entry("거래처", List.of("B-07")),
+        Map.entry("클라우드", List.of("B-10")),
+        Map.entry("서버", List.of("B-10")),
+        Map.entry("aws", List.of("B-10")),
+        Map.entry("gcp", List.of("B-10"))
+    );
+
+    private static final int MAX_RELEVANT = 3;
+    private static final int MAX_TOTAL = 5;
+
     public record MissingField(String diagnosisCode, String fieldName, String label) {}
 
     public List<MissingField> getMissingFields(CompanyProfile profile) {
@@ -119,6 +161,46 @@ public class DiagnosisFieldMapper {
                 }
             }
         });
+        return result;
+    }
+
+    public List<MissingField> getRelevantMissingFields(CompanyProfile profile, String userMessage) {
+        List<MissingField> allMissing = getMissingFields(profile);
+        if (allMissing.isEmpty()) return List.of();
+
+        if (userMessage == null || userMessage.isBlank()) {
+            return allMissing.size() > MAX_TOTAL ? allMissing.subList(0, MAX_TOTAL) : allMissing;
+        }
+
+        String lowerMsg = userMessage.toLowerCase();
+        Set<String> relevantCodes = new LinkedHashSet<>();
+        KEYWORD_TO_CODES.forEach((keyword, codes) -> {
+            if (lowerMsg.contains(keyword)) relevantCodes.addAll(codes);
+        });
+
+        if (relevantCodes.isEmpty()) {
+            return allMissing.size() > MAX_TOTAL ? allMissing.subList(0, MAX_TOTAL) : allMissing;
+        }
+
+        // 관련 코드 미확인 필드 우선 (최대 MAX_RELEVANT개)
+        List<MissingField> result = new ArrayList<>();
+        Set<String> addedFields = new LinkedHashSet<>();
+        for (MissingField mf : allMissing) {
+            if (result.size() >= MAX_RELEVANT) break;
+            if (relevantCodes.contains(mf.diagnosisCode())) {
+                result.add(mf);
+                addedFields.add(mf.fieldName());
+            }
+        }
+
+        // 나머지 중 비관련 필드로 MAX_TOTAL까지 채우기
+        for (MissingField mf : allMissing) {
+            if (result.size() >= MAX_TOTAL) break;
+            if (!addedFields.contains(mf.fieldName()) && !relevantCodes.contains(mf.diagnosisCode())) {
+                result.add(mf);
+            }
+        }
+
         return result;
     }
 

@@ -38,9 +38,10 @@ public class RagPipeline {
         List<Map<String, Object>> lawRefs = vectorSearchService.searchLaws(queryVector, 5);
         String businessType = profile != null ? profile.getBusinessType() : null;
         List<Map<String, Object>> caseRefs = vectorSearchService.searchCases(queryVector, businessType, 3);
-        List<DiagnosisFieldMapper.MissingField> missingFields = diagnosisFieldMapper.getMissingFields(profile);
-        log.debug("RAG 검색 완료 - 법령: {}건, 사례: {}건, 이력: {}건, 미확인필드: {}개",
-                lawRefs.size(), caseRefs.size(), history.size(), missingFields.size());
+        List<DiagnosisFieldMapper.MissingField> missingFields = diagnosisFieldMapper.getRelevantMissingFields(profile, userMessage);
+        log.info("RAG 검색 완료 - 법령: {}건, 사례: {}건, 이력: {}건, 주입 미확인필드: {}개 {}",
+                lawRefs.size(), caseRefs.size(), history.size(), missingFields.size(),
+                missingFields.stream().map(DiagnosisFieldMapper.MissingField::fieldName).toList());
         return new RagResult(llmService.streamAnswer(userMessage, profile, lawRefs, caseRefs, history, missingFields), lawRefs, caseRefs);
     }
 }
