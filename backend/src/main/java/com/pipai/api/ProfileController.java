@@ -23,8 +23,9 @@ public class ProfileController {
 
     @GetMapping
     public ApiResponse<ProfileDto> getProfile(@AuthenticationPrincipal UUID userId) {
-        log.info("[DIAG] getProfile userId={}", userId);
-        return ApiResponse.ok(ProfileDto.from(profileService.getProfile(userId)));
+        return profileService.findProfile(userId)
+                .map(p -> ApiResponse.ok(ProfileDto.from(p)))
+                .orElseGet(() -> ApiResponse.ok(ProfileDto.empty()));
     }
 
     public record FieldPatchRequest(@NotBlank String field, @NotBlank String value) {}

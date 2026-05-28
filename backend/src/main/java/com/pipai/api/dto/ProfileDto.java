@@ -183,6 +183,37 @@ public record ProfileDto(
         );
     }
 
+    public static ProfileDto empty() {
+        BasicInfo emptyBasic = new BasicInfo(null, null, null, null, null, null, null);
+        Overview emptyOverview = new Overview(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new ProfileDto(
+                "",
+                emptyBasic,
+                emptyOverview,
+                new Destruction(null, null),
+                new EmploymentRetention(null, null),
+                new PartnerContactHandling(null, null),
+                new PrivacyPolicyCompleteness(null),
+                new DelegationGovernance(null, null, null),
+                new CloudHosting(null, null),
+                new CctvControls(null, null),
+                new SecurityControls(null, null, null, null),
+                new CpoInfo(null, null),
+                new OperatingInfo(null, null),
+                new DelegationContracts(null),
+                new MarketingInfo(null, null, null),
+                new CctvAdditional(null, null),
+                new AccessLogInfo(null),
+                new JuminInfo(null),
+                new ProvisionInfo(null, null, null, null),
+                new InternalPlanInfo(null, null),
+                new FuturePlan(null, null, null, null, null),
+                new CctvExtra(null, null, null, null, null, null),
+                new MarketingExtra(null, null),
+                null
+        );
+    }
+
     public static List<String> splitCsv(String value) {
         if (value == null || value.isBlank()) {
             return List.of();
