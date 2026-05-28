@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +25,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/conversations")
 @RequiredArgsConstructor
+@Slf4j
 public class ChatController {
 
     private final ChatService chatService;
@@ -105,6 +107,7 @@ public class ChatController {
             return Flux.error(new org.springframework.security.access.AccessDeniedException("유효하지 않은 토큰입니다."));
         }
         UUID userId = jwtProvider.getUserId(token);
+        log.info("[DIAG] sendMessage conversationId={} userId={}", id, userId);
         return Flux.defer(() -> chatService.sendMessage(id, userId, req.message()))
                 .onErrorResume(e -> Flux.just("{\"type\":\"error\",\"content\":\"죄송합니다. AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해 주세요.\"}"));
     }

@@ -30,6 +30,8 @@ public class RagPipeline {
 
     public RagResult generateAnswer(String userMessage, UUID userId, List<Message> history) {
         CompanyProfile profile = profileRepository.findByUserId(userId).orElse(null);
+        log.info("[DIAG] generateAnswer userId={} profileFound={} businessType={}",
+                userId, profile != null, profile != null ? profile.getBusinessType() : "N/A");
         float[] queryVector = embeddingService.embed(userMessage);
         List<Map<String, Object>> lawRefs = vectorSearchService.searchLaws(queryVector, 5);
         String businessType = profile != null ? profile.getBusinessType() : null;
