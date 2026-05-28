@@ -96,25 +96,34 @@ jobs:
           wait-for-service-stability: true
 
       - name: Update Vercel BACKEND_URL with new ECS IP
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        continue-on-error: true
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_GITHUB_REPO_ID: ${{ secrets.VERCEL_GITHUB_REPO_ID }}
         run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN not set, skipping"
+            exit 0
+          fi
+
           sleep 10
           TASK_ARN=$(aws ecs list-tasks --cluster pipai-cluster --service-name pipai-backend --query 'taskArns[0]' --output text)
           ENI_ID=$(aws ecs describe-tasks --cluster pipai-cluster --tasks $TASK_ARN --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text)
           PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
 
-          ENV_ID=$(curl -s "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_PROJECT_ID }}/env" \
-            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+          ENV_ID=$(curl -s "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
             | python3 -c "import sys,json; envs=json.load(sys.stdin)['envs']; print(next((e['id'] for e in envs if e['key']=='BACKEND_URL'), ''))")
 
           if [ -n "$ENV_ID" ]; then
-            curl -s -X PATCH "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_PROJECT_ID }}/env/$ENV_ID" \
-              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            curl -s -X PATCH "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$ENV_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"value\": \"http://$PUBLIC_IP:8080\"}"
           fi
 
           curl -s -X POST "https://api.vercel.com/v13/deployments" \
-            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"name\": \"pipai-frontend\", \"target\": \"production\", \"gitSource\": {\"type\": \"github\", \"repoId\": \"${{ secrets.VERCEL_GITHUB_REPO_ID }}\", \"ref\": \"main\"}}" || true
+            -d "{\"name\": \"pipai-frontend\", \"target\": \"production\", \"gitSource\": {\"type\": \"github\", \"repoId\": \"$VERCEL_GITHUB_REPO_ID\", \"ref\": \"main\"}}" || true
