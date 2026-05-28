@@ -153,10 +153,12 @@ public class DiagnosisFieldMapper {
 
     public List<MissingField> getMissingFields(CompanyProfile profile) {
         List<MissingField> result = new ArrayList<>();
+        Set<String> seenFields = new LinkedHashSet<>();
         FIELD_MAP.forEach((code, fields) -> {
             for (String field : fields) {
-                if (isFieldEmpty(profile, field)) {
+                if (isFieldEmpty(profile, field) && !seenFields.contains(field)) {
                     result.add(new MissingField(code, field, FIELD_LABELS.getOrDefault(field, field)));
+                    seenFields.add(field);
                     break;
                 }
             }
@@ -182,22 +184,23 @@ public class DiagnosisFieldMapper {
             return allMissing.size() > MAX_TOTAL ? allMissing.subList(0, MAX_TOTAL) : allMissing;
         }
 
-        // 관련 코드 미확인 필드 우선 (최대 MAX_RELEVANT개)
+        // 관련 코드 미확인 필드 우선 (최대 MAX_RELEVANT개), 필드명 기준 중복 제거
         List<MissingField> result = new ArrayList<>();
-        Set<String> addedFields = new LinkedHashSet<>();
+        Set<String> addedFieldNames = new LinkedHashSet<>();
         for (MissingField mf : allMissing) {
             if (result.size() >= MAX_RELEVANT) break;
-            if (relevantCodes.contains(mf.diagnosisCode())) {
+            if (relevantCodes.contains(mf.diagnosisCode()) && !addedFieldNames.contains(mf.fieldName())) {
                 result.add(mf);
-                addedFields.add(mf.fieldName());
+                addedFieldNames.add(mf.fieldName());
             }
         }
 
-        // 나머지 중 비관련 필드로 MAX_TOTAL까지 채우기
+        // 나머지 중 비관련 필드로 MAX_TOTAL까지 채우기 (필드명 중복 제거 포함)
         for (MissingField mf : allMissing) {
             if (result.size() >= MAX_TOTAL) break;
-            if (!addedFields.contains(mf.fieldName()) && !relevantCodes.contains(mf.diagnosisCode())) {
+            if (!addedFieldNames.contains(mf.fieldName()) && !relevantCodes.contains(mf.diagnosisCode())) {
                 result.add(mf);
+                addedFieldNames.add(mf.fieldName());
             }
         }
 
