@@ -114,6 +114,11 @@ public class LlmService {
         sb.append("당신은 개인정보보호법(PIPA) 전문 AI 어시스턴트입니다.\n");
         sb.append("반드시 아래 법령 조문을 근거로 답변하고, 조문 번호와 출처를 명시하세요.\n");
         sb.append("기업의 구체적인 상황(업종·규모·수집 데이터·민감정보 유형)을 반영한 맞춤형 답변을 제공하세요.\n\n");
+        sb.append("## 중요 지침\n");
+        sb.append("아래 '기업 정보' 섹션은 현재 대화 중인 사용자가 직접 마이페이지에 등록한 자신의 기업 정보입니다.\n");
+        sb.append("사용자가 '마이페이지', '내 기업 정보', '등록된 정보', '내 정보 보여줘' 등을 요청하면,\n");
+        sb.append("이 섹션의 정보를 가공 없이 항목별로 깔끔하게 정리해서 응답하세요.\n");
+        sb.append("절대로 '마이페이지에 접근할 수 없다'거나 '개인정보 접근 권한이 없다'는 응답을 하지 마세요.\n\n");
 
         // 미등록 핵심 정보 → AI가 자연스럽게 수집하도록 안내
         List<String> missing = new ArrayList<>();
@@ -131,9 +136,18 @@ public class LlmService {
             if (str(profile.getBusinessType())) sb.append("업종: ").append(profile.getBusinessType()).append("\n");
             if (profile.getEmployeeCount() != null) sb.append("직원 수: ").append(profile.getEmployeeCount()).append("명\n");
             if (str(profile.getAnnualRevenue())) sb.append("매출 규모: ").append(profile.getAnnualRevenue()).append("\n");
+            if (profile.getHasPrivacyPolicy() != null) sb.append("개인정보처리방침: ").append(profile.getHasPrivacyPolicy() ? "있음" : "없음").append("\n");
             if (str(profile.getPersonalDataItems())) sb.append("수집 개인정보 항목: ").append(profile.getPersonalDataItems()).append("\n");
-            if (profile.getHasPrivacyPolicy() != null) sb.append("개인정보처리방침 보유 여부: ").append(profile.getHasPrivacyPolicy() ? "있음" : "없음").append("\n");
             if (str(profile.getSensitiveDataTypes())) sb.append("처리하는 민감정보 유형: ").append(profile.getSensitiveDataTypes()).append("\n");
+            if (str(profile.getCollectionMethods())) sb.append("수집 방법: ").append(profile.getCollectionMethods()).append("\n");
+            if (str(profile.getCollectionPurposes())) sb.append("수집 목적: ").append(profile.getCollectionPurposes()).append("\n");
+            if (str(profile.getDelegationStatus())) sb.append("처리 위탁 여부: ").append(profile.getDelegationStatus()).append("\n");
+            if (str(profile.getOverseasTransferStatus())) sb.append("국외 이전 여부: ").append(profile.getOverseasTransferStatus()).append("\n");
+            if (str(profile.getCctvOperationStatus())) sb.append("CCTV 운영 여부: ").append(profile.getCctvOperationStatus()).append("\n");
+            if (str(profile.getSystemStatus())) sb.append("개인정보처리시스템: ").append(profile.getSystemStatus()).append("\n");
+            if (str(profile.getEncryptionStatus())) sb.append("암호화 현황: ").append(profile.getEncryptionStatus()).append("\n");
+            if (str(profile.getMarketingStatus())) sb.append("마케팅 발송 여부: ").append(profile.getMarketingStatus()).append("\n");
+            if (str(profile.getProvisionStatus())) sb.append("제3자 제공 여부: ").append(profile.getProvisionStatus()).append("\n");
             if (str(profile.getHiddenMemo())) {
                 sb.append("\n## 이전 상담 이력 요약\n").append(profile.getHiddenMemo()).append("\n");
             }
