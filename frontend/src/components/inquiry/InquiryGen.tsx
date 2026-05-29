@@ -50,7 +50,8 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
   }
 
   return (
-    <div style={{ padding: '24px 32px 48px', overflowY: 'auto', height: '100%', maxWidth: 820, margin: '0 auto' }}>
+    <div style={{ overflowY: 'auto', height: '100%' }}>
+    <div style={{ padding: '24px 32px 48px', maxWidth: 860, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <button onClick={onBack} style={{
         background: 'transparent', border: 'none', color: 'var(--fg-2)',
         fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: 500,
@@ -137,6 +138,7 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

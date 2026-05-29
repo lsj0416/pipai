@@ -175,23 +175,12 @@ export default function DashboardPage() {
       growth={growth}
       profileReady={profileReady}
       onJumpToChat={(row) => {
-        if (row.sourceType === 'PROFILE') {
-          const stepMap: Record<string, number> = {
-            'B-01': 3, 'B-02': 3, 'B-10': 3, 'B-11': 3,
-            'B-03': 5, 'B-04': 5, 'B-09': 5,
-            'B-05': 4,
-            'B-06': 2, 'B-07': 2, 'B-08': 2,
-            'A-02': 5, 'A-19': 5, 'A-20': 5, 'A-22': 5,
-            'A-04': 4, 'A-05': 4, 'A-08': 4, 'A-21': 4,
-            'A-06': 3, 'A-16': 3, 'A-17': 3, 'A-25': 3,
-            'A-07': 6, 'A-11': 6, 'A-14': 6,
-            'A-09': 2, 'A-13': 2,
-          };
-          router.push(`/mypage?step=${stepMap[row.diagnosisCode ?? ''] ?? 2}`);
-          return;
-        }
         if (row.sourceConversationId) {
           router.push(`/chat?conversationId=${row.sourceConversationId}`);
+          return;
+        }
+        if (row.id) {
+          router.push(`/chat?riskId=${row.id}`);
           return;
         }
         router.push('/chat');

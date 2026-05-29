@@ -10,6 +10,7 @@ import type { ChatMessage } from '@/lib/types';
 import { createConversation, sendMessage, getMessages, deleteConversation } from '@/lib/api/conversations';
 import type { TopbarMenuItem } from '@/components/layout/Topbar';
 import { patchProfileField } from '@/lib/api/profile';
+import { getRisks, type BackendRiskItem } from '@/lib/api/dashboard';
 
 function mdToHtml(html: string): string {
   return html
@@ -40,6 +41,7 @@ function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingConvId = searchParams.get('conversationId');
+  const riskId = searchParams.get('riskId');
 
   interface ProfileSuggestion {
     field: string;
@@ -63,6 +65,11 @@ function ChatPageContent() {
   const [profileSuggestions, setProfileSuggestions] = useState<ProfileSuggestion[]>([]);
   const [profileFillProgress, setProfileFillProgress] = useState<ProfileFillProgress | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [riskContext, setRiskContext] = useState<BackendRiskItem | null>(null);
+  const riskContextRef = useRef<BackendRiskItem | null>(null);
+  const autoSentRef = useRef(false);
+  const pendingAutoSendRef = useRef<string | null>(null);
+  const sendRef = useRef<((text: string) => Promise<boolean>) | null>(null);
 
   useEffect(() => {
     // existingConvId가 null이 되는 경우(삭제 후 /chat으로 이동)에도 반드시 초기화
@@ -84,8 +91,34 @@ function ChatPageContent() {
       return () => { cancelled = true; };
     }
 
+    if (riskId) {
+      setMessages([WELCOME]);
+      getRisks(token).then(res => {
+        if (cancelled) return;
+        if (res.success && res.data) {
+          const risk = res.data.find(r => r.id === riskId) ?? null;
+          riskContextRef.current = risk;
+          setRiskContext(risk);
+          if (risk) {
+            setMessages([{
+              role: 'assistant',
+              parts: [{ type: 'text', html:
+                `안녕하세요! <strong>${risk.title}</strong> 관련 리스크를 해결하는 방법을 안내해 드릴게요.<br/><br/>잠시 후 구체적인 조치 방법을 말씀드리겠습니다.` }],
+            }]);
+            const msg = [
+              `"${risk.title}" 위반 위험이 진단되었습니다.`,
+              risk.description ?? '',
+              `관련 법령(${risk.relatedLaw ?? '개인정보 보호법'})을 근거로 구체적인 조치 방법을 단계별로 안내해 주세요.`,
+            ].filter(Boolean).join(' ');
+            pendingAutoSendRef.current = msg;
+          }
+        }
+      }).catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
+      return () => { cancelled = true; };
+    }
+
     if (existingConvId) {
-       
+
       setMessages([WELCOME]);
       getMessages(token, existingConvId)
         .then(res => {
@@ -110,8 +143,8 @@ function ChatPageContent() {
     }
 
     return () => { cancelled = true; };
-   
-  }, [router, existingConvId, isProfileFillMode]);
+
+  }, [router, existingConvId, isProfileFillMode, riskId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -122,7 +155,9 @@ function ChatPageContent() {
   const ensureConversationId = async (token: string): Promise<string | null> => {
     if (conversationIdRef.current) return conversationIdRef.current;
     try {
-      const title = isProfileFillMode ? '마이페이지 작성 도우미' : '개인정보보호 리스크 진단';
+      const title = riskContextRef.current
+        ? `[리스크 상담] ${riskContextRef.current.title}`
+        : isProfileFillMode ? '마이페이지 작성 도우미' : '개인정보보호 리스크 진단';
       const conversationType = isProfileFillMode ? 'PROFILE_FILL' : undefined;
       const res = await createConversation(token, title, conversationType);
       if (res.success && res.data) {
@@ -264,6 +299,18 @@ function ChatPageContent() {
     }
   };
 
+  // sendRef: 최신 send 함수를 자동전송 useEffect에서 안전하게 참조
+  useEffect(() => { sendRef.current = send; });
+
+  // riskId로 진입한 경우 리스크 데이터 로드 후 자동으로 첫 메시지 전송
+  useEffect(() => {
+    const msg = pendingAutoSendRef.current;
+    if (!msg || autoSentRef.current || streaming || loading || !sendRef.current) return;
+    autoSentRef.current = true;
+    pendingAutoSendRef.current = null;
+    void sendRef.current(msg);
+  }, [streaming, loading]);
+
   const hasUserMessage = messages.some(m => m.role === 'user');
 
   const handleSaveField = async (suggestion: ProfileSuggestion) => {
@@ -319,7 +366,7 @@ function ChatPageContent() {
   return (
     <>
       <Topbar
-        title={isProfileFillMode || profileFillProgress !== null ? '마이페이지 작성 도우미' : '개인정보보호 리스크 진단'}
+        title={isProfileFillMode || profileFillProgress !== null ? '마이페이지 작성 도우미' : riskContext ? `리스크 상담` : '개인정보보호 리스크 진단'}
         status={streaming ? '응답 중...' : profileFillProgress ? `${profileFillProgress.percent}% 완료` : '진행 중'}
         menuItems={menuItems}
       />

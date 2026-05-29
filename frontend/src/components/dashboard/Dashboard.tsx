@@ -93,7 +93,8 @@ export default function Dashboard({ rows, summary, growth, profileReady, onJumpT
   const filterLabel: Record<SeverityActive, string> = { high: '즉시 조치 필요', medium: '확인 필요', safe: '양호' };
 
   return (
-    <div style={{ padding: '24px 32px 48px', overflowY: 'auto', height: '100%' }}>
+    <div style={{ overflowY: 'auto', height: '100%' }}>
+    <div style={{ padding: '24px 32px 48px', maxWidth: 1100, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>리스크 대시보드</div>
         <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4 }}>마이페이지 + 대화에서 진단된 항목이 자동으로 정리돼요.</div>
@@ -188,6 +189,7 @@ export default function Dashboard({ rows, summary, growth, profileReady, onJumpT
           {tabRows.map((r, i) => <GrowthRow key={i} row={r} />)}
         </div>
       </div>
+    </div>
     </div>
   );
 }

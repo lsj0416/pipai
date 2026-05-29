@@ -47,7 +47,8 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div style={{ padding: '32px 32px 40px', maxWidth: 720, overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+    <div style={{ padding: '32px 32px 48px', maxWidth: 760, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em' }}>대화 목록</div>
@@ -102,6 +103,7 @@ export default function ConversationsPage() {
           ))}
         </div>
       )}
+    </div>
     </div>
   );
 }

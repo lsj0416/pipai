@@ -80,7 +80,8 @@ function InquiryList() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 820, margin: '0 auto' }}>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+    <div style={{ padding: '24px 32px 48px', maxWidth: 860, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', letterSpacing: '-0.015em', marginBottom: 6 }}>저장된 문의글</div>
       <div style={{ fontSize: 13, color: 'var(--fg-3)', marginBottom: 24 }}>생성한 문의글을 확인하고 수정할 수 있어요.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -117,6 +118,7 @@ function InquiryList() {
           </button>
         ))}
       </div>
+    </div>
     </div>
   );
 }

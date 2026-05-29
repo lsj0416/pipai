@@ -1885,7 +1885,8 @@ export default function MyPage() {
   const lastStep = SECTIONS.length - 1;
 
   return (
-    <div style={{ padding: '32px 32px 40px', maxWidth: 720, overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+    <div style={{ padding: '32px 32px 48px', maxWidth: 760, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
       {/* 온보딩 모달 */}
       {showOnboardingModal && (
@@ -2087,6 +2088,7 @@ export default function MyPage() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }
