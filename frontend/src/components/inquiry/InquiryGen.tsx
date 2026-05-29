@@ -102,7 +102,7 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
         <Section title="■ AI 진단 결과">
           <KV k="수집 동의 절차" v={<span style={{ color: 'var(--gok-red)', fontWeight: 600 }}>{draft.diagnosis.status}</span>} />
           <KV k="관련 조항"      v={<span style={{ color: 'var(--gok-blue)', fontWeight: 600 }}>{draft.diagnosis.law}</span>} />
-          <KV k="유사 처분 사례" v={draft.diagnosis.precedent} />
+          <KV k="유사 처분 사례" v={draft.diagnosis.precedent || <span style={{ color: 'var(--fg-4)' }}>유사 사례 없음</span>} />
         </Section>
 
         {/* 전문가 연락처 */}
