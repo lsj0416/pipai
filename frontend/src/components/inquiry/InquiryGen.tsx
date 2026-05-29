@@ -105,19 +105,22 @@ export default function InquiryGen({ draft, onBack }: InquiryGenProps) {
           <KV k="유사 처분 사례" v={draft.diagnosis.precedent || <span style={{ color: 'var(--fg-4)' }}>유사 사례 없음</span>} />
         </Section>
 
-        {/* 전문가 연락처 */}
-        <Section title="■ 전문가 연락처" last>
+        {/* 제출 및 문의 방법 */}
+        <Section title="■ 제출 및 문의 방법" last>
           <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)' }}>개인정보보호위원회 기술지원 컨설팅</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>📞 (국번없이) 182</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 13, color: 'var(--fg-1)' }}>☎ 02-2100-3043</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-2)', paddingLeft: 20 }}>
+                (개인정보보호위원회 법령해석지원센터)<br />
+                월~금 9:00~18:00, 공휴일 제외
+              </div>
               <a
-                href="https://www.privacy.go.kr/front/business/consltRequestList.do"
+                href="https://www.epeople.go.kr"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ fontSize: 13, color: 'var(--gok-blue)', textDecoration: 'underline', cursor: 'pointer' }}
               >
-                🌐 개인정보보호 포털 → 기술지원 컨설팅 신청
+                🏛 국민신문고(epeople.go.kr) 제출
               </a>
             </div>
           </div>
