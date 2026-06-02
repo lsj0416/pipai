@@ -168,6 +168,104 @@ Pinecone·Weaviate 같은 전용 벡터 DB를 추가하면 운영 비용과 복�
 
 ---
 
+## 트러블슈팅
+
+### WebClient → RestTemplate 교체 — 한글 URL 이중 인코딩 + DNS 문제
+
+**증상**
+법제처 DRF API에 한글 쿼리 파라미터(`query=개인정보`)를 포함해 호출하면 로컬 macOS 환경에서만 요청이 실패했습니다. 서버에서는 정상 동작해 원인 파악이 어려웠습니다.
+
+**원인 파악**
+Spring WebClient는 URI를 빌드할 때 파라미터를 한 번 인코딩하고, 내부 Netty HTTP 클라이언트가 전송 직전에 한 번 더 인코딩합니다. 결과적으로 `%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4`가 다시 인코딩되어 서버가 인식하지 못했습니다. 또한 macOS의 Netty DNS 리졸버가 `open.law.go.kr` 도메인을 간헐적으로 해석하지 못하는 문제도 겹쳤습니다.
+
+**해결**
+WebClient를 RestTemplate으로 교체하고 `UriComponentsBuilder`로 파라미터를 명시적으로 인코딩한 뒤, `URI` 객체를 직접 넘겨 이중 인코딩을 차단했습니다. macOS DNS 문제는 RestTemplate의 JDK 기본 DNS 리졸버로 전환하면서 자연히 해소되었습니다.
+
+```java
+// Before: WebClient (이중 인코딩 발생)
+webClient.get()
+    .uri(uriBuilder -> uriBuilder.queryParam("query", "개인정보").build())
+
+// After: RestTemplate + 명시적 URI 생성
+URI uri = UriComponentsBuilder.fromHttpUrl(BASE_URL)
+    .queryParam("query", query)
+    .build(false)   // 인코딩 스킵 (이미 인코딩됨)
+    .toUri();
+restTemplate.getForObject(uri, String.class);
+```
+
+---
+
+### SSE 스트리밍 파싱 버그 — 토큰 앞 공백 유실
+
+**증상**
+GPT-4o 답변이 스트리밍될 때 단어 사이 공백이 간헐적으로 사라져 "개인정보보호법에따르면위반입니다"처럼 붙어서 표시되었습니다.
+
+**원인 파악**
+SSE 메시지 형식은 `data: {"token": " 따르면"}` 처럼 `data:` 뒤에 공백이 하나 붙습니다. 프론트엔드 파싱 코드에서 `line.replace("data:", "").trim()`을 사용했는데, `trim()`이 토큰 값 앞의 의미 있는 공백까지 제거했습니다.
+
+**해결**
+`trim()` 대신 `data:` 접두사만 정확히 제거하도록 수정했습니다.
+
+```typescript
+// Before: trim()이 토큰 앞 공백 제거
+const json = line.replace("data:", "").trim();
+
+// After: 접두사 7자("data: ")만 슬라이싱
+const json = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
+```
+
+---
+
+### 공공 API 문서-실제 응답 스펙 불일치 — 파싱 전면 실패
+
+**증상**
+개인정보보호위원회 처분 사례 수집 시 50건 전체가 빈 객체로 저장되어 벡터 검색 결과에 사례가 전혀 나오지 않았습니다.
+
+**원인 파악**
+법제처 DRF API 문서에는 처분 사례 응답 키가 `PrecSearch.prec`로 명시되어 있었지만, 실제 응답은 `Expc.expc` 구조로 내려왔습니다. 해당 API가 실제로는 판례가 아닌 **법령해석례** 엔드포인트(`target=expc`)였고, 문서와 실제 응답 구조가 달랐습니다. 필드명도 `사건명 → 안건명`, `사건번호 → 안건번호`로 달랐습니다.
+
+**해결**
+실제 API 응답을 직접 캡처하여 키 구조를 역산한 뒤 파서를 전면 수정했습니다. 이후 공공 API 연동 시 반드시 실제 응답을 먼저 확인하는 것을 원칙으로 삼았습니다.
+
+```java
+// Before: 문서 기준 파싱 (전부 null)
+JsonNode cases = root.path("PrecSearch").path("prec");
+String title = node.path("사건명").asText();
+
+// After: 실제 응답 기준 파싱
+JsonNode cases = root.path("Expc").path("expc");
+String title = node.path("안건명").asText();
+```
+
+---
+
+### LLM null 응답으로 인한 DB 제약 위반
+
+**증상**
+특정 조건에서 문의글 생성 API를 호출하면 `NOT NULL constraint violation`으로 500 에러가 발생했습니다.
+
+**원인 파악**
+두 가지 케이스가 있었습니다. 첫째, 대화 내용이 없는 상태에서 문의글 생성을 호출하면 LLM에 빈 컨텍스트가 전달되어 응답이 `null`로 반환되었습니다. 둘째, LLM 응답에서 JSON을 추출하는 정규식이 간헐적으로 매칭에 실패해 `null`을 반환했고, 그 값이 그대로 DB에 저장을 시도했습니다.
+
+**해결**
+서비스 레이어에 두 단계 방어 코드를 추가했습니다. 메시지가 0건인 대화는 문의글 생성 전에 early return하고, LLM 응답이 `null`이거나 파싱에 실패하면 의미 있는 예외를 던져 500이 아닌 400으로 응답하도록 처리했습니다.
+
+```java
+// 빈 대화 조기 차단
+if (messages.isEmpty()) {
+    throw new IllegalStateException("대화 내용이 없어 문의글을 생성할 수 없습니다.");
+}
+
+// LLM null 응답 방어
+String generated = llmService.completeText(prompt);
+if (generated == null || generated.isBlank()) {
+    throw new IllegalStateException("LLM 응답이 비어 있습니다. 다시 시도해주세요.");
+}
+```
+
+---
+
 ## 문서
 
 | 문서 | 경로 |
